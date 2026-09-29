@@ -4,15 +4,19 @@ Base URL in local development: `http://127.0.0.1:4310/api`.
 
 This local demo has no authentication. Do not expose it to the public internet. JSON request bodies are limited to 16 KB.
 
-| Method | Route                | Purpose                                                  |
-| ------ | -------------------- | -------------------------------------------------------- |
-| GET    | `/health`            | Runtime mode and configured planner name                 |
-| GET    | `/state`             | Runs, last 200 events, ledger effects, policy, knowledge |
-| GET    | `/runs/:id`          | A mission and its complete ordered trace                 |
-| POST   | `/runs`              | Create a validated mission; returns 201                  |
-| POST   | `/runs/:id/decision` | Approve or reject a waiting action                       |
-| POST   | `/runs/:id/cancel`   | Cancel before an effect is committed                     |
-| PUT    | `/policy`            | Replace the complete workspace policy                    |
+| Method | Route                | Purpose                                                      |
+| ------ | -------------------- | ------------------------------------------------------------ |
+| GET    | `/health`            | Runtime mode and configured planner name                     |
+| GET    | `/state`             | Runs, last 200 events, ledger effects, policy, knowledge     |
+| GET    | `/runs/:id`          | A mission and its complete ordered trace                     |
+| POST   | `/runs`              | Create a validated mission; returns 201                      |
+| POST   | `/runs/:id/decision` | Approve or reject a waiting action                           |
+| POST   | `/runs/:id/cancel`   | Cancel before an effect is committed                         |
+| PUT    | `/policy`            | Replace the complete workspace policy                        |
+| GET    | `/live/config`       | Whether an optional server model is configured; no secrets   |
+| POST   | `/live/complete`     | Proxy bounded structured generation for the local playground |
+
+The public GitHub Pages playground does not call this API. It runs inference in a WebGPU worker. The optional `/live/complete` body contains `messages` (up to 25 role/content objects) and `allowedTools` (a nonempty subset of the six playground tools). It returns generated `content` and measured token usage, or 503 when not configured / 502 on provider failure. It never substitutes a deterministic response. The server injects the current structured-output schema, forwards to the environment-configured provider, and keeps its key off the client.
 
 ## Launch a mission
 

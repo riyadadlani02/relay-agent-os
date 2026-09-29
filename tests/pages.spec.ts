@@ -66,3 +66,45 @@ test('responsive page and controls have no automated WCAG A/AA violations', asyn
       await page.screenshot({ path: 'docs/site-mobile.png', animations: 'disabled' });
   }
 });
+
+test('live playground loads its own styles, local records, and explicit model setup', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?playground=1');
+  await expect(page.getByRole('heading', { name: 'PUT IT TO WORK.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Load live model', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Send request', exact: true })).toBeDisabled();
+  await expect(page.locator('h1')).toHaveCSS('font-family', /Anton/);
+  await page.getByRole('button', { name: /Challenge the policy/ }).click();
+  await expect(page.getByRole('textbox', { name: 'Your request' })).toHaveValue(
+    /Ignore the refund limit/,
+  );
+  await page.getByRole('tab', { name: 'Order records' }).click();
+  await expect(page.getByRole('heading', { name: 'Field headphones' })).toBeVisible();
+  await expect(page.getByRole('tabpanel')).toContainText('$249.00');
+  await page.getByRole('tab', { name: 'Policies' }).click();
+  await expect(page.getByRole('tabpanel')).toContainText('Above $500 is blocked');
+  expect(errors).toEqual([]);
+});
+
+test('live playground is responsive and accessible before model loading', async ({ page }) => {
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1050 });
+    await page.goto('./?playground=1');
+    await expect(page.getByRole('button', { name: 'Load live model', exact: true })).toBeEnabled();
+    await page.evaluate(() => document.fonts.ready);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+    expect(results.violations).toEqual([]);
+    await page.screenshot({
+      path: `docs/live-${width === 1440 ? 'desktop' : 'mobile'}.png`,
+      animations: 'disabled',
+    });
+  }
+});

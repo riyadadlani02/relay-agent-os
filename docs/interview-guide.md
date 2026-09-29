@@ -4,7 +4,13 @@
 
 “I built a small operating layer for customer-operation agents. I focused on the boundary between an agent proposing something and the system actually doing it: persistence, permissions, human review, idempotency, and evidence of the result.”
 
-Describe this accurately as a portfolio prototype. Sample customers are fictional, the default planner is deterministic, and the connectors write a local sandbox ledger. Do not present it as deployed customer work or imply Wonderful helped build it.
+Describe this accurately as a portfolio prototype. The live playground uses a real on-device Qwen model over fictional orders; the original workflow demo has a separately labeled deterministic planner. Business writes update a local database. Do not present it as deployed customer work or imply Wonderful helped build it.
+
+## Lead with the live playground
+
+Load the model before the interview so its weights are cached. Open `?playground=1` and invite the interviewer to type a request themselves. Show the actual tool arguments, source policies, record mutation, and receipt—not just generated text. Follow a small refund with a $249 approval and a $750 denial. Ask them to change the wording or try another language, and explain any model mistake honestly using the trace.
+
+The central point: “The model chooses what to propose. The application owns authority, atomic state changes, and evidence.” The browser deployment removes API-key setup, but trades it for a model download and device-dependent performance. Be ready to explain how a hosted model, authenticated operators, and a payment connector would change the architecture.
 
 ## A five-minute walkthrough
 

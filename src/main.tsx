@@ -2,7 +2,11 @@ import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 const workspace =
   import.meta.env.MODE !== 'pages' && new URLSearchParams(location.search).has('workspace');
-const Entry = lazy(() => (workspace ? import('./WorkspaceEntry') : import('./site/Site')));
+const playground = new URLSearchParams(location.search).has('playground');
+const LivePlayground = lazy(() => import('./playground/Playground'));
+const Site = lazy(() => import('./site/Site'));
+const Workspace = import.meta.env.MODE !== 'pages' ? lazy(() => import('./WorkspaceEntry')) : Site;
+const Entry = playground ? LivePlayground : workspace ? Workspace : Site;
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Suspense

@@ -26,7 +26,9 @@
   "dependencies": {
     "@fontsource/anton": "^5.3.0",
     "@fontsource/space-mono": "^5.3.0",
+    "@mlc-ai/web-llm": "^0.2.85",
     "express": "^5.2.1",
+    "idb": "^8.0.3",
     "lucide-react": "^1.48.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -43,6 +45,7 @@
     "@types/supertest": "^7.2.1",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
+    "fake-indexeddb": "^6.2.5",
     "prettier": "^3.9.9",
     "supertest": "^7.3.0",
     "typescript": "^7.0.2",

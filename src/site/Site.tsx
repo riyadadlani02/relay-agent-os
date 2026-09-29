@@ -185,10 +185,7 @@ export default function Site() {
     }
   }
   function boot() {
-    launch();
-    document
-      .getElementById('console')
-      ?.scrollIntoView({ behavior: motion ? 'smooth' : 'instant', block: 'start' });
+    location.href = `${import.meta.env.BASE_URL}?playground=1`;
   }
   function decide(decision: 'approved' | 'rejected') {
     if (!run) return;
@@ -239,7 +236,7 @@ export default function Site() {
           <a href="#system">
             THE SYSTEM <span>01</span>
           </a>
-          <a href="#console">
+          <a href={`${import.meta.env.BASE_URL}?playground=1`}>
             PLAYGROUND <span>02</span>
           </a>
           <a href={repo} target="_blank" rel="noreferrer">
@@ -456,7 +453,7 @@ export default function Site() {
         <section id="console" className="console-section" aria-labelledby="console-title">
           <div className="section-index">
             <span>[ 02 — HANDS ON THE CONTROLS ]</span>
-            <span>LIVE INTERACTIVE DEMO</span>
+            <span>DETERMINISTIC WALKTHROUGH</span>
           </div>
           <div className="console-intro">
             <h2 id="console-title">
@@ -465,9 +462,10 @@ export default function Site() {
               PRESS PLAY.
             </h2>
             <p>
-              Pick a mission. Let the agents work.
+              Explore the deterministic runtime, or{' '}
+              <a href={`${import.meta.env.BASE_URL}?playground=1`}>open the live AI playground</a>.
               <br />
-              Step in when they need you.
+              Type your own requests. Inspect every tool call.
             </p>
             <div className="cassette-stamp">
               <Mark />
@@ -744,7 +742,7 @@ export default function Site() {
                 ['MEMORY', 'SQLite on the server. Local state in this demo.'],
                 ['RELIABILITY', 'Retry safely. Verify the outcome.'],
                 ['VISIBILITY', 'Every action leaves a trace.'],
-                ['MODEL', 'Deterministic demo. Optional model planning on the server.'],
+                ['MODEL', 'Live Qwen inference in the playground. No API key.'],
               ].map(([label, value]) => (
                 <div key={label}>
                   <span>{label}</span>
