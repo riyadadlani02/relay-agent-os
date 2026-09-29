@@ -1,0 +1,819 @@
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import {
+  ArrowDown,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Download,
+  GitBranch,
+  Pause,
+  Play,
+  Plus,
+  ShieldCheck,
+  SkipForward,
+  Square,
+  X,
+} from 'lucide-react';
+import { stages, type Run, type RunInput } from '../shared';
+import { createBrowserRuntime } from './browser-store';
+import '@fontsource/anton/latin-400.css';
+import '@fontsource/space-mono/latin-400.css';
+import '@fontsource/space-mono/latin-700.css';
+import './site.css';
+
+const repo = 'https://github.com/riyadadlani02/relay-agent-os';
+const scenarios: { title: string; code: string; detail: string; input: RunInput }[] = [
+  {
+    title: 'Autonomous run',
+    code: 'A—01',
+    detail: 'A $49 refund. Six services. No intervention.',
+    input: {
+      customer: 'Alex Morgan',
+      issue: 'Please refund the duplicate $49 subscription charge.',
+      scenario: 'refund',
+      amountCents: 4900,
+      faultOnce: false,
+    },
+  },
+  {
+    title: 'Human in the loop',
+    code: 'B—02',
+    detail: 'A $249 refund pauses for your approval.',
+    input: {
+      customer: 'Sam Rivera',
+      issue: 'My annual plan renewed after cancellation. Please refund $249.',
+      scenario: 'refund',
+      amountCents: 24900,
+      faultOnce: false,
+    },
+  },
+  {
+    title: 'The hard boundary',
+    code: 'C—03',
+    detail: 'A $750 request. The policy has the final say.',
+    input: {
+      customer: 'Jordan Lee',
+      issue: 'Please refund the entire $750 enterprise invoice.',
+      scenario: 'refund',
+      amountCents: 75000,
+      faultOnce: false,
+    },
+  },
+  {
+    title: 'A second chance',
+    code: 'D—04',
+    detail: 'One connector failure. One retry. One effect.',
+    input: {
+      customer: 'Taylor Brooks',
+      issue: 'Please refund my duplicate $49 subscription charge.',
+      scenario: 'refund',
+      amountCents: 4900,
+      faultOnce: true,
+    },
+  },
+];
+const agentDetails = [
+  [
+    'A signal becomes a mission.',
+    'Typed customer context gives every run a clear starting point. No loose instructions wandering through your system.',
+  ],
+  [
+    'Context before confidence.',
+    'The knowledge service retrieves the applicable policy and attaches a source citation to the trace.',
+  ],
+  [
+    'A plan, with boundaries.',
+    'The resolution agent proposes a structured action. A plan is a proposal; permission comes next.',
+  ],
+  [
+    'Your rules have the last word.',
+    'Refund limits, capability checks, and human approval gates are enforced before an action can happen.',
+  ],
+  [
+    'Do it once. Do it right.',
+    'A run-scoped idempotency key keeps a connector retry from creating a duplicate sandbox effect.',
+  ],
+  [
+    'An outcome you can inspect.',
+    'The quality service checks the ledger before marking the mission complete. Every step leaves evidence.',
+  ],
+];
+const statusLabel: Record<Run['status'], string> = {
+  queued: 'IN THE QUEUE',
+  running: 'MISSION IN MOTION',
+  awaiting_approval: 'WAITING FOR YOU',
+  completed: 'MISSION COMPLETE',
+  failed: 'POLICY / RUNTIME STOP',
+  cancelled: 'MISSION CANCELLED',
+};
+function Star({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 60 60" fill="currentColor" aria-hidden="true">
+      <path d="M30 0C30 23 37 30 60 30C37 30 30 37 30 60C30 37 23 30 0 30C23 30 30 23 30 0Z" />
+    </svg>
+  );
+}
+function Mark() {
+  return (
+    <svg viewBox="0 0 60 34" fill="none" aria-hidden="true">
+      <ellipse cx="20" cy="17" rx="10" ry="17" transform="rotate(43 20 17)" />
+      <ellipse cx="40" cy="17" rx="10" ry="17" transform="rotate(43 40 17)" />
+    </svg>
+  );
+}
+
+export default function Site() {
+  const [{ runtime, store }] = useState(createBrowserRuntime);
+  const [snapshot, setSnapshot] = useState(() => ({
+    runs: store.runs(),
+    events: store.events(),
+    effects: store.effects(),
+    policy: store.policy(),
+  }));
+  const [scenario, setScenario] = useState(0);
+  const [selected, setSelected] = useState<string>();
+  const [agent, setAgent] = useState(0);
+  const [motion, setMotion] = useState(true);
+  const [error, setError] = useState('');
+  const [expanded, setExpanded] = useState(false);
+  const art = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const refresh = () =>
+      setSnapshot({
+        runs: store.runs(),
+        events: store.events(),
+        effects: store.effects(),
+        policy: store.policy(),
+      });
+    const unsubscribe = store.subscribe(refresh);
+    let busy = false;
+    const timer = setInterval(() => {
+      if (busy) return;
+      busy = true;
+      runtime
+        .tick()
+        .catch(() =>
+          setError('The runtime paused unexpectedly. Reload to recover your local session.'),
+        )
+        .finally(() => {
+          busy = false;
+        });
+    }, 850);
+    return () => {
+      unsubscribe();
+      clearInterval(timer);
+    };
+  }, [runtime, store]);
+  const run = snapshot.runs.find((r) => r.id === selected) ?? snapshot.runs[0];
+  const trace = run ? snapshot.events.filter((e) => e.runId === run.id) : [];
+  const active = run && ['running', 'queued'].includes(run.status);
+  const completed = snapshot.runs.filter((r) => r.status === 'completed').length;
+  function launch(index = scenario) {
+    try {
+      if (snapshot.runs.filter((r) => ['running', 'queued'].includes(r.status)).length >= 4) {
+        setError('Four missions are already in motion. Let one finish, then launch another.');
+        return;
+      }
+      if (store.policy().paused) store.setPolicy({ ...store.policy(), paused: false });
+      const mission = runtime.create(scenarios[index].input);
+      setSelected(mission.id);
+      setError('');
+      setExpanded(false);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  function boot() {
+    launch();
+    document
+      .getElementById('console')
+      ?.scrollIntoView({ behavior: motion ? 'smooth' : 'instant', block: 'start' });
+  }
+  function decide(decision: 'approved' | 'rejected') {
+    if (!run) return;
+    try {
+      runtime.decide(run.id, decision);
+      setError('');
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  function download() {
+    if (!run) return;
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          { run, events: trace, effects: snapshot.effects.filter((e) => e.runId === run.id) },
+          null,
+          2,
+        ),
+      ],
+      { type: 'application/json' },
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `relay-${run.id}.json`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return (
+    <div className={`relay-site ${motion ? 'motion-on' : 'motion-off'}`} id="top">
+      <a className="site-skip" href="#console">
+        Skip to interactive demo
+      </a>
+      <header className="site-header">
+        <a href="#top" className="site-logo" aria-label="Relay OS home">
+          <Mark />
+          <span>
+            RELAY<span>®</span>
+          </span>
+          <small>
+            OPERATING
+            <br />
+            SYSTEM
+          </small>
+        </a>
+        <nav aria-label="Site navigation">
+          <a href="#system">
+            THE SYSTEM <span>01</span>
+          </a>
+          <a href="#console">
+            PLAYGROUND <span>02</span>
+          </a>
+          <a href={repo} target="_blank" rel="noreferrer">
+            GITHUB <ArrowUpRight size={14} />
+          </a>
+        </nav>
+        <button className="header-boot" onClick={boot}>
+          <span className="rec-dot" />
+          BOOT SYSTEM <ArrowUpRight size={15} />
+        </button>
+      </header>
+      <main className="site-main">
+        <section
+          className="hardware-hero"
+          aria-labelledby="hero-title"
+          onPointerMove={(e) => {
+            if (!motion || e.pointerType === 'touch') return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            art.current?.style.setProperty(
+              '--pointer-x',
+              `${(e.clientX - rect.left - rect.width / 2) / 55}px`,
+            );
+            art.current?.style.setProperty(
+              '--pointer-y',
+              `${(e.clientY - rect.top - rect.height / 2) / 70}px`,
+            );
+          }}
+          onPointerLeave={() => {
+            art.current?.style.setProperty('--pointer-x', '0px');
+            art.current?.style.setProperty('--pointer-y', '0px');
+          }}
+        >
+          <div className="hero-topline">
+            <span>
+              AGENT OPERATING SYSTEM
+              <br />
+              R—OS / SERIES 001
+            </span>
+            <div className="signal-rule">
+              <i />
+              <i />
+              <i />
+            </div>
+            <span className="hero-top-center">INDEPENDENT MINDS. SHARED PURPOSE.</span>
+            <div className="signal-rule reversed">
+              <i />
+              <i />
+              <i />
+            </div>
+            <span className="hero-availability">
+              <span className="rec-dot" />
+              AVAILABLE FOR EXPLORATION
+            </span>
+          </div>
+          <div className="hero-cross left">
+            <Star />
+            <Star />
+            <Star />
+          </div>
+          <div className="hero-cross right">
+            <Star />
+            <Star />
+            <Star />
+          </div>
+          <div className="hero-caption">
+            <span>
+              Intelligence,
+              <br />
+              in your hands.
+            </span>
+            <span>
+              DESIGNED FOR AUTONOMY.
+              <br />
+              ENGINEERED FOR CONTROL.
+            </span>
+          </div>
+          <h1 id="hero-title" className="hero-title">
+            AGENTS, UNLEASHED.
+          </h1>
+          <div className="hero-art" ref={art}>
+            <div className="device-halo" />
+            <img
+              src={`${import.meta.env.BASE_URL}images/agent-core.png`}
+              alt="Transparent olive Relay agent core with twin silver reels, a status display, and an orange control switch"
+              width="1254"
+              height="1254"
+              fetchPriority="high"
+            />
+            <span className="device-ground" />
+          </div>
+          <div className="hero-spec left-spec">
+            <span className="crosshair">+</span>
+            <span>
+              06 SPECIALIST SERVICES
+              <br />
+              01 CONNECTED SYSTEM
+            </span>
+            <i />
+          </div>
+          <div className="hero-spec right-spec">
+            <i />
+            <span>
+              FULL OBSERVABILITY
+              <br />
+              HUMAN OVERRIDE: ON
+            </span>
+            <span className="crosshair">+</span>
+          </div>
+          <div className="hero-bottom">
+            <div className="serial">
+              <span className="serial-box">R1</span>
+              <span>
+                INTELLIGENCE WITHOUT THE BLACK BOX.
+                <br />
+                PERSIST. ORCHESTRATE. OBSERVE.
+              </span>
+            </div>
+            <button className="boot-key" onClick={boot}>
+              <span>PRESS TO EXPLORE</span>
+              <Play size={16} fill="currentColor" />
+              <span>BOOT RELAY OS</span>
+            </button>
+            <div className="hero-controls">
+              <button onClick={() => setMotion(!motion)} aria-pressed={motion}>
+                {motion ? <Pause size={12} /> : <Play size={12} />}MOTION {motion ? 'ON' : 'OFF'}
+              </button>
+              <span>
+                SCROLL TO CONNECT <ArrowDown size={12} />
+              </span>
+            </div>
+          </div>
+        </section>
+        <div className="frequency-strip" aria-hidden="true">
+          <span>BUILT FOR AGENTS</span>
+          <Star />
+          <span>WIRED FOR TRUST</span>
+          <Star />
+          <span>MADE TO MOVE WORK</span>
+          <Star />
+          <span>ALWAYS IN YOUR HANDS</span>
+          <Star />
+        </div>
+
+        <section id="system" className="system-section">
+          <div className="section-index">
+            <span>[ 01 — THE OPERATING LAYER ]</span>
+            <span>NO MYSTERY. JUST MACHINERY.</span>
+          </div>
+          <div className="system-intro">
+            <h2>
+              BIG IDEAS.
+              <br />
+              CONNECTED MINDS.
+            </h2>
+            <div>
+              <Star className="intro-star" />
+              <p>Give your agents a world to work in.</p>
+              <p>
+                Relay turns a customer request into a coordinated mission. Six focused services.
+                Clear boundaries. And a human hand on the controls whenever it matters.
+              </p>
+              <a href="#console">
+                TAKE IT FOR A SPIN <ArrowDownRight size={20} />
+              </a>
+            </div>
+          </div>
+          <div className="agent-rack">
+            {stages.map((stage, index) => (
+              <button
+                className={`agent-module ${index === agent ? 'engaged' : ''}`}
+                key={stage.name}
+                onClick={() => setAgent(index)}
+                aria-pressed={index === agent}
+              >
+                <span className="module-number">
+                  0{index + 1}
+                  <Plus size={13} />
+                </span>
+                <span className="module-symbol" aria-hidden="true">
+                  {index === 0
+                    ? '↙'
+                    : index === 1
+                      ? '≋'
+                      : index === 2
+                        ? '✳'
+                        : index === 3
+                          ? '⌾'
+                          : index === 4
+                            ? '↯'
+                            : '✓'}
+                </span>
+                <strong>{stage.name.toUpperCase()}</strong>
+                <span className="module-type">{stage.agent.toUpperCase()} SERVICE</span>
+                <span className="module-connector">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="agent-description" aria-live="polite">
+            <span>
+              CHANNEL 0{agent + 1} <span className="tiny-led" />
+            </span>
+            <h3>{agentDetails[agent][0]}</h3>
+            <p>{agentDetails[agent][1]}</p>
+            <code>{stages[agent].tool}</code>
+          </div>
+        </section>
+
+        <section id="console" className="console-section" aria-labelledby="console-title">
+          <div className="section-index">
+            <span>[ 02 — HANDS ON THE CONTROLS ]</span>
+            <span>LIVE INTERACTIVE DEMO</span>
+          </div>
+          <div className="console-intro">
+            <h2 id="console-title">
+              DON’T JUST WATCH.
+              <br />
+              PRESS PLAY.
+            </h2>
+            <p>
+              Pick a mission. Let the agents work.
+              <br />
+              Step in when they need you.
+            </p>
+            <div className="cassette-stamp">
+              <Mark />
+              <span>
+                RELAY
+                <br />
+                DEMO TAPE VOL. 01
+              </span>
+            </div>
+          </div>
+          <div className="demo-deck">
+            <div className="deck-top">
+              <span>
+                <span className="rec-dot" />
+                RELAY / MISSION CONSOLE
+              </span>
+              <span>
+                BROWSER SANDBOX <LockSymbol />
+              </span>
+              <div className="deck-screws">
+                <span>⊕</span>
+                <span>⊕</span>
+              </div>
+            </div>
+            <div className="deck-grid">
+              <div className="track-picker">
+                <span className="deck-label">SELECT A TRACK</span>
+                {scenarios.map((item, index) => (
+                  <button
+                    className={scenario === index ? 'selected' : ''}
+                    key={item.code}
+                    onClick={() => setScenario(index)}
+                    aria-pressed={scenario === index}
+                  >
+                    <span>{item.code}</span>
+                    <strong>{item.title}</strong>
+                    <ArrowUpRight size={14} />
+                    <small>{item.detail}</small>
+                  </button>
+                ))}
+                <div className="track-note">
+                  <ShieldCheck size={18} />
+                  <span>
+                    Real orchestration.
+                    <br />
+                    Simulated business actions.
+                  </span>
+                </div>
+              </div>
+              <div className="deck-display">
+                <div className="lcd">
+                  <div className="lcd-top">
+                    <span>
+                      <span className={`lcd-led ${active ? 'lit' : ''}`} />
+                      {snapshot.policy.paused
+                        ? 'RUNTIME PAUSED'
+                        : run
+                          ? statusLabel[run.status]
+                          : 'READY FOR INPUT'}
+                    </span>
+                    <span>R—OS / 001</span>
+                  </div>
+                  <div className="lcd-main">
+                    <div>
+                      <span className="lcd-number">
+                        {run ? String(Math.min(run.step, 6)).padStart(2, '0') : '00'}
+                        <small>/06</small>
+                      </span>
+                      <p>{run ? run.customer : 'NO MISSION LOADED'}</p>
+                    </div>
+                    <div
+                      className={`equalizer ${active && !snapshot.policy.paused ? 'playing' : ''}`}
+                      aria-hidden="true"
+                    >
+                      {Array.from({ length: 22 }, (_, i) => (
+                        <i
+                          key={i}
+                          style={
+                            {
+                              '--bar': `${((i * 7) % 17) + 5}%`,
+                              '--delay': `${i * -0.07}s`,
+                            } as CSSProperties
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="lcd-stages">
+                    {stages.map((stage, i) => (
+                      <span
+                        key={stage.name}
+                        className={
+                          run && run.step > i ? 'done' : run && run.step === i ? 'current' : ''
+                        }
+                      >
+                        <i />
+                        {stage.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="deck-transport">
+                  <div className="transport-buttons">
+                    <button
+                      className="play-key"
+                      onClick={() => launch()}
+                      aria-label="Launch selected mission"
+                    >
+                      <Play size={18} fill="currentColor" />
+                      PLAY
+                    </button>
+                    <button
+                      onClick={() =>
+                        store.setPolicy({ ...store.policy(), paused: !snapshot.policy.paused })
+                      }
+                      aria-label={
+                        snapshot.policy.paused ? 'Resume demo runtime' : 'Pause demo runtime'
+                      }
+                      aria-pressed={snapshot.policy.paused}
+                    >
+                      {snapshot.policy.paused ? <Play size={17} /> : <Pause size={17} />}
+                    </button>
+                    <button
+                      disabled={
+                        !run ||
+                        !['queued', 'running', 'awaiting_approval'].includes(run.status) ||
+                        snapshot.effects.some((e) => e.runId === run.id)
+                      }
+                      onClick={() => {
+                        if (run)
+                          try {
+                            runtime.cancel(run.id);
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                      }}
+                      aria-label="Stop selected mission"
+                    >
+                      <Square size={15} fill="currentColor" />
+                    </button>
+                    <button
+                      onClick={() => setScenario((scenario + 1) % scenarios.length)}
+                      aria-label="Select next scenario"
+                    >
+                      <SkipForward size={17} />
+                    </button>
+                  </div>
+                  <span className="transport-note">
+                    {scenarios[scenario].code}
+                    <br />
+                    {scenarios[scenario].title}
+                  </span>
+                </div>
+                {error && (
+                  <p className="demo-error" role="alert">
+                    {error}
+                  </p>
+                )}
+                {run?.status === 'awaiting_approval' && (
+                  <div className="human-gate" role="status">
+                    <div>
+                      <ShieldCheck size={18} />
+                      <strong>Your judgment. Your call.</strong>
+                    </div>
+                    <p>
+                      This $249 refund is above the $100 automatic limit. No action has been
+                      committed.
+                    </p>
+                    <button onClick={() => decide('rejected')}>
+                      <X size={14} />
+                      REJECT
+                    </button>
+                    <button className="approve-key" onClick={() => decide('approved')}>
+                      <Check size={14} />
+                      APPROVE $249
+                    </button>
+                  </div>
+                )}
+                {run?.outcome && (
+                  <div className={`demo-outcome ${run.status}`} role="status">
+                    <span>
+                      {run.status === 'completed' ? <Check size={17} /> : <ShieldCheck size={17} />}
+                    </span>
+                    <p>{run.outcome}</p>
+                  </div>
+                )}
+                <div className="trace-screen">
+                  <div className="trace-title">
+                    <span>THE SIGNAL PATH</span>
+                    <span>{trace.length.toString().padStart(2, '0')} EVENTS</span>
+                  </div>
+                  {trace.length ? (
+                    <ol aria-label="Execution events">
+                      {(expanded ? trace : trace.slice(-4)).map((event) => (
+                        <li key={event.id}>
+                          <span>{String(event.id).padStart(2, '0')}</span>
+                          <strong>{event.agent}</strong>
+                          <p>{event.message}</p>
+                          <Check size={12} />
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <div className="trace-empty">
+                      <span>_</span>
+                      <p>
+                        Your mission starts with a play.
+                        <br />
+                        Every decision will appear right here.
+                      </p>
+                    </div>
+                  )}
+                  <div className="trace-actions">
+                    <button disabled={!trace.length} onClick={() => setExpanded(!expanded)}>
+                      {expanded ? 'COLLAPSE TRACE' : 'INSPECT FULL TRACE'} <Plus size={12} />
+                    </button>
+                    <button disabled={!run} onClick={download}>
+                      EXPORT <Download size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="deck-bottom">
+              <span>⊕</span>
+              <span>
+                <i />
+                NO API KEY REQUIRED / NO REAL TRANSACTIONS
+              </span>
+              <span>⊕</span>
+            </div>
+          </div>
+          <div className="session-row">
+            <span>
+              <i className="tiny-led" />
+              {store.persistenceAvailable
+                ? 'SESSION SAVED IN THIS BROWSER'
+                : 'TEMPORARY SESSION — BROWSER STORAGE UNAVAILABLE'}
+            </span>
+            <span>
+              {completed.toString().padStart(2, '0')} COMPLETED /{' '}
+              {snapshot.effects.length.toString().padStart(2, '0')} SANDBOX EFFECTS
+            </span>
+            {snapshot.runs.length > 1 && (
+              <label>
+                PAST MISSIONS{' '}
+                <select value={run?.id ?? ''} onChange={(e) => setSelected(e.target.value)}>
+                  {snapshot.runs.map((r) => (
+                    <option value={r.id} key={r.id}>
+                      {r.customer} / {r.id.slice(-4)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        </section>
+
+        <section className="spec-section" id="specification">
+          <div className="section-index">
+            <span>[ 03 — UNDER THE SHELL ]</span>
+            <span>OPEN IT UP. IT’S ALL THERE.</span>
+          </div>
+          <div className="spec-layout">
+            <h2>
+              NOTHING
+              <br />
+              TO HIDE.
+            </h2>
+            <div className="spec-table">
+              {[
+                ['EXECUTION', 'Resumable. Step by step.'],
+                ['PERMISSIONS', 'A proposal is never permission.'],
+                ['MEMORY', 'SQLite on the server. Local state in this demo.'],
+                ['RELIABILITY', 'Retry safely. Verify the outcome.'],
+                ['VISIBILITY', 'Every action leaves a trace.'],
+                ['MODEL', 'Deterministic demo. Optional model planning on the server.'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <p>{value}</p>
+                  <ArrowUpRight size={14} />
+                </div>
+              ))}
+              <a href={`${repo}/blob/main/docs/architecture.md`} target="_blank" rel="noreferrer">
+                READ THE ENGINEERING NOTES <ArrowRight size={17} />
+              </a>
+            </div>
+          </div>
+        </section>
+        <section className="closing-section">
+          <div>
+            <Mark />
+            <span>
+              BUILD SOMETHING
+              <br />
+              WORTH SETTING FREE.
+            </span>
+          </div>
+          <a href={repo} target="_blank" rel="noreferrer">
+            GET THE SOURCE <GitBranch size={20} />
+            <ArrowUpRight size={22} />
+          </a>
+        </section>
+      </main>
+      <footer className="site-footer">
+        <a href="#top">
+          RELAY OS <span>®</span>
+        </a>
+        <div>
+          <span>INDEPENDENT PROJECT BY RIYA DADLANI</span>
+          <span>DESIGNED TO BE EXPLORED. BUILT TO BE UNDERSTOOD.</span>
+        </div>
+        <a
+          href="https://dribbble.com/shots/25961667-Retro-Futuristic-Website-Concept-for-a-Cassette-Player"
+          target="_blank"
+          rel="noreferrer"
+        >
+          DESIGN INSPIRATION <ArrowUpRight size={12} />
+        </a>
+        <button
+          onClick={() => {
+            document
+              .getElementById('top')
+              ?.scrollIntoView({ behavior: motion ? 'smooth' : 'instant' });
+          }}
+          aria-label="Back to top"
+        >
+          <ArrowUpRight size={20} />
+        </button>
+      </footer>
+    </div>
+  );
+}
+function LockSymbol() {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      width="12"
+      height="12"
+      fill="none"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="2" y="5" width="8" height="6" rx="1" />
+      <path d="M4 5V3a2 2 0 0 1 4 0v2" />
+    </svg>
+  );
+}

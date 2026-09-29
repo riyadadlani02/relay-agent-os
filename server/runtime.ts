@@ -1,7 +1,6 @@
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { stages, type Plan, type Policy, type Run, type RunInput } from '../src/shared.js';
-import { Store } from './store.js';
+import type { Store } from './store.js';
 import { planSchema, sandboxPlanner, type Planner } from './provider.js';
 
 export const inputSchema = z
@@ -52,10 +51,25 @@ export function policyDecision(
   return action === 'replace' || run.amountCents > policy.autoRefundLimitCents ? 'review' : 'allow';
 }
 
+export type RuntimeStore = Pick<
+  Store,
+  | 'transaction'
+  | 'save'
+  | 'get'
+  | 'runs'
+  | 'event'
+  | 'events'
+  | 'policy'
+  | 'setPolicy'
+  | 'effects'
+  | 'commitEffect'
+  | 'knowledge'
+>;
+
 export class Runtime {
   private inflight = new Set<string>();
   constructor(
-    public store: Store,
+    public store: RuntimeStore,
     public planner: Planner = sandboxPlanner,
   ) {}
   create(
@@ -66,7 +80,7 @@ export class Runtime {
     const clean = inputSchema.parse(input);
     const run: Run = {
       ...clean,
-      id: `run_${randomUUID().slice(0, 8)}`,
+      id: `run_${crypto.randomUUID().slice(0, 8)}`,
       status: 'queued',
       step: 0,
       actions: 0,

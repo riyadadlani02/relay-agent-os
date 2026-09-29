@@ -1,6 +1,10 @@
 # Relay OS
 
-### An operating layer for agents that do real work.
+### Intelligence, in your hands.
+
+**[Open the interactive website](https://riyadadlani02.github.io/relay-agent-os/)** — a retro-futuristic agent OS playground that runs entirely in the browser.
+
+![Relay OS retro website](docs/site-desktop.png)
 
 Give an agent a customer request. Follow its plan, inspect its tool calls, approve a sensitive action, and verify the outcome—all in one workspace.
 
@@ -19,7 +23,7 @@ npm ci
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. The API runs on port 4310. Ten explicitly labeled sample missions are generated on first startup, including two waiting for approval.
+Open **http://127.0.0.1:5173** for the website, or **http://127.0.0.1:5173/?workspace=1** for the API-backed workspace. The API runs on port 4310. Ten explicitly labeled sample missions are generated on first startup, including two waiting for approval.
 
 For the built application:
 
@@ -31,7 +35,9 @@ npm start
 
 Or use `docker compose up --build` and open port 4310. The Compose configuration binds the application to localhost and persists SQLite in a named volume. Docker packaging is provided; see the verification notes below for what has been exercised.
 
-## The three-minute demo
+The public website uses the same runtime with a browser storage adapter and fixed demo scenarios. The backend workspace below uses SQLite. See [website design and deployment](docs/design.md) for both modes.
+
+## The three-minute backend demo
 
 1. Click **New mission → Quick refund → Launch mission**. A $49 refund passes through six services and lands in the sandbox ledger.
 2. Launch **Approval gate**. The $249 refund pauses before execution. Inspect the trace, approve it, and watch it resume from the persisted checkpoint.
@@ -99,7 +105,9 @@ Without those variables, planning is deterministic. There is no silent fallback 
 
 ```bash
 npm run check      # TypeScript, production build, backend/API tests, 10 scenario evals
-npm run test:e2e   # Browser flows; Chrome locally, Playwright Chromium in CI
+npm run test:e2e   # Backend workspace browser flows
+npm run build:pages
+npm run test:pages # Static website, reload recovery, layout, accessibility
 ```
 
 If Chrome is unavailable, install Playwright Chromium with `npx playwright install chromium`, then run `CI=1 npm run test:e2e`. Browser tests run their own isolated in-memory database on port 4311 and require a current production build.
@@ -111,7 +119,8 @@ CI runs the same build, tests, evaluations, and browser suite on Node 24. Docker
 ## Project map
 
 ```text
-src/                 React workspace, styles, shared contracts
+src/                 React workspace, website, styles, shared contracts
+src/site/            Retro website and browser sandbox adapter
 server/runtime.ts    State machine, approval gates, policy enforcement
 server/store.ts      SQLite persistence and atomic ledger operations
 server/provider.ts   Deterministic and optional model planners

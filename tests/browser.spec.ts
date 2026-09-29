@@ -4,7 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 test('overview has no automated WCAG A/AA violations on desktop or mobile', async ({ page }) => {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto('/');
+    await page.goto('/?workspace=1');
     await expect(page.getByRole('heading', { name: 'Your agents. In sync.' })).toBeVisible();
     const result = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
@@ -14,7 +14,7 @@ test('overview has no automated WCAG A/AA violations on desktop or mobile', asyn
 });
 
 test('launches, pauses for approval, resumes, and verifies a sandbox refund', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?workspace=1');
   await page.getByRole('button', { name: 'New mission', exact: true }).click();
   await page.getByRole('button', { name: 'Approval gate', exact: true }).click();
   await page.getByLabel('Customer name').fill('Browser Test Customer');
@@ -29,7 +29,7 @@ test('launches, pauses for approval, resumes, and verifies a sandbox refund', as
 });
 
 test('a hard policy limit stops execution and exposes the reason', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?workspace=1');
   await page.getByRole('button', { name: 'New mission', exact: true }).click();
   await page.getByRole('button', { name: 'Policy boundary', exact: true }).click();
   await page.getByRole('button', { name: 'Launch mission', exact: true }).click();
@@ -41,7 +41,7 @@ test('a hard policy limit stops execution and exposes the reason', async ({ page
 });
 
 test('searches knowledge and persists a policy edit', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?workspace=1');
   await page
     .getByRole('navigation')
     .getByRole('button', { name: 'Knowledge', exact: true })
@@ -60,7 +60,7 @@ test('searches knowledge and persists a policy edit', async ({ page }) => {
 
 test('mobile layout stays within the viewport and keyboard search works', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('/?workspace=1');
   await expect(page.getByRole('heading', { name: 'Your agents. In sync.' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.keyboard.press('Control+k');
