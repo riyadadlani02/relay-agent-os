@@ -23,7 +23,7 @@ export function schemaForTools(allowedTools: Action['tool'][], orderIds: string[
     properties: {
       ...actionJSONSchema.properties,
       tool: { type: 'string', enum: allowedTools },
-      ...(orderIds.length ? { orderId: { type: 'string', enum: ['', ...orderIds] } } : {}),
+      ...(orderIds.length ? { orderId: { type: 'string', enum: orderIds } } : {}),
     },
   };
 }

@@ -2,6 +2,8 @@
 
 ### Intelligence, in your hands.
 
+[**Watch the 75-second product film**](https://riyadadlani02.github.io/relay-agent-os/#film) · [Download MP4](https://riyadadlani02.github.io/relay-agent-os/media/relay-demo.mp4)
+
 **[Open the live AI playground](https://riyadadlani02.github.io/relay-agent-os/?playground=1)** · [Project website](https://riyadadlani02.github.io/relay-agent-os/)
 
 Type a customer request. A real Qwen model chooses tools, retrieves policies, reads order records, and requests a refund or replacement. Code independently enforces the limits. Inspect the actual arguments, results, approval decisions, token usage, and persisted receipts.
@@ -105,7 +107,7 @@ The browser polls snapshots every 1.5 seconds and the selected trace every secon
 
 The key correctness boundary is in [`server/runtime.ts`](server/runtime.ts): effect creation, its audit event, and checkpoint advancement share one SQLite transaction. A unique constraint permits at most one sandbox effect per run. Pending approvals are ordinary durable states, not promises kept in memory.
 
-See [architecture and tradeoffs](docs/architecture.md), [HTTP API](docs/api.md), and the [interview walkthrough](docs/interview-guide.md).
+See [architecture and tradeoffs](docs/architecture.md) and the [HTTP API](docs/api.md).
 
 ## Optional model planning
 

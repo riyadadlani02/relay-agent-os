@@ -239,6 +239,9 @@ export default function Site() {
           <a href={`${import.meta.env.BASE_URL}?playground=1`}>
             PLAYGROUND <span>02</span>
           </a>
+          <a href="#film">
+            WATCH FILM <span>03</span>
+          </a>
           <a href={repo} target="_blank" rel="noreferrer">
             GITHUB <ArrowUpRight size={14} />
           </a>
@@ -379,6 +382,51 @@ export default function Site() {
           <span>ALWAYS IN YOUR HANDS</span>
           <Star />
         </div>
+
+        <section id="film" className="film-section" aria-labelledby="film-title">
+          <div className="section-index">
+            <span>[ PLAY / THE PRODUCT FILM ]</span>
+            <span>01:15 · SOUND ON</span>
+          </div>
+          <div className="film-intro">
+            <h2 id="film-title">SEE IT IN MOTION.</h2>
+            <p>
+              A request. An action. Your control. Watch Relay work through real model inference,
+              human approval, and a hard policy boundary.
+            </p>
+          </div>
+          <video
+            controls
+            playsInline
+            preload="none"
+            poster={`${import.meta.env.BASE_URL}media/relay-demo-poster.jpg`}
+            aria-label="Relay OS product demo with English narration and open captions"
+          >
+            <source
+              src={`${import.meta.env.BASE_URL}media/relay-demo.webm`}
+              type='video/webm; codecs="vp9, opus"'
+            />
+            <source src={`${import.meta.env.BASE_URL}media/relay-demo.mp4`} type="video/mp4" />
+            <track
+              kind="captions"
+              src={`${import.meta.env.BASE_URL}media/relay-demo.vtt`}
+              srcLang="en"
+              label="English"
+            />
+            <a href={`${import.meta.env.BASE_URL}media/relay-demo.mp4`}>Download the demo film</a>
+          </video>
+          <div className="film-meta">
+            <span>REAL PLAYGROUND CAPTURES · EDITED FOR CLARITY · FICTIONAL BUSINESS DATA</span>
+            <div>
+              <a href={`${import.meta.env.BASE_URL}media/relay-demo-transcript.txt`}>
+                Read transcript <ArrowUpRight size={14} />
+              </a>
+              <a href={`${import.meta.env.BASE_URL}media/relay-demo.mp4`} download>
+                Download film <Download size={14} />
+              </a>
+            </div>
+          </div>
+        </section>
 
         <section id="system" className="system-section">
           <div className="section-index">

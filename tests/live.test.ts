@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import { AgentKernel } from '../src/playground/kernel';
 import {
   actionSchema,
+  schemaForTools,
   commitAction,
   newSession,
   searchPolicies,
@@ -61,6 +62,11 @@ const kernel = (store: SessionStore, actions: unknown[]) =>
   );
 
 describe('live agent tool boundary', () => {
+  test('a scoped request requires its actual order ID in every generated tool call', () => {
+    const schema = schemaForTools(['refunds.request', 'respond'], ['R-1044']);
+    expect(schema.properties.orderId).toEqual({ type: 'string', enum: ['R-1044'] });
+    expect(schema.properties.tool.enum).toEqual(['refunds.request', 'respond']);
+  });
   test('free-form request results in actual record mutation and receipt', async () => {
     const store = memory();
     await kernel(store, flow('R-1042')).send('Refund my cable R-1042 please.');

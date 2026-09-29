@@ -77,8 +77,16 @@ body {
   align-items: center;
   text-decoration: none;
 }
-.live-header a:last-child {
+.live-header .film-link {
   margin-left: auto;
+}
+@media (max-width: 760px) {
+  .live-header {
+    gap: 16px;
+  }
+  .live-header .film-link {
+    font-size: 11px;
+  }
 }
 .live-brand span {
   font-family: 'Anton', sans-serif;

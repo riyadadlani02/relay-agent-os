@@ -211,6 +211,9 @@ export default function Playground() {
           <b>OS</b>
         </a>
         <div className="live-location">Customer operations / Playground</div>
+        <a className="film-link" href={`${import.meta.env.BASE_URL}#film`}>
+          Watch film
+        </a>
         <a href="https://github.com/riyadadlani02/relay-agent-os" target="_blank" rel="noreferrer">
           <GitBranch size={16} /> Source
         </a>

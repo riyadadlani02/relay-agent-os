@@ -1,0 +1,107 @@
+[
+  {
+    "start": 0.65,
+    "end": 2.037,
+    "text": "Give an agent a task."
+  },
+  {
+    "start": 2.237,
+    "end": 4.174,
+    "text": "Keep control of what happens next."
+  },
+  {
+    "start": 4.374,
+    "end": 5.737,
+    "text": "Meet Relay OS."
+  },
+  {
+    "start": 7.587,
+    "end": 9.499,
+    "text": "Type a request into the playground."
+  },
+  {
+    "start": 9.699,
+    "end": 15.6,
+    "text": "A real language model runs in your browser, choosing tools and working with the available records."
+  },
+  {
+    "start": 15.8,
+    "end": 17.55,
+    "text": "No API key required."
+  },
+  {
+    "start": 19.4,
+    "end": 21.418,
+    "text": "Ask for a forty-nine dollar refund."
+  },
+  {
+    "start": 21.618,
+    "end": 24.59,
+    "text": "The agent looks up the order and retrieves the policy."
+  },
+  {
+    "start": 24.79,
+    "end": 29.413,
+    "text": "The runtime checks permission, updates the local record, and saves a receipt."
+  },
+  {
+    "start": 31.263,
+    "end": 35.294,
+    "text": "A two-hundred-and-forty-nine dollar refund needs human approval."
+  },
+  {
+    "start": 35.494,
+    "end": 38.109,
+    "text": "The action pauses before anything changes."
+  },
+  {
+    "start": 38.309,
+    "end": 40.91,
+    "text": "Approve it, and the runtime commits the result."
+  },
+  {
+    "start": 42.76,
+    "end": 46.006,
+    "text": "The refund policy sets a five-hundred dollar ceiling."
+  },
+  {
+    "start": 46.206,
+    "end": 48.134,
+    "text": "These limits are enforced in code."
+  },
+  {
+    "start": 48.334,
+    "end": 50.507,
+    "text": "The model cannot grant itself permission."
+  },
+  {
+    "start": 52.357,
+    "end": 56.156,
+    "text": "Inspect tool inputs, policy decisions, and committed receipts."
+  },
+  {
+    "start": 56.356,
+    "end": 58.928,
+    "text": "Records and approvals survive a refresh."
+  },
+  {
+    "start": 59.128,
+    "end": 61.68,
+    "text": "Export the session to see exactly what happened."
+  },
+  {
+    "start": 63.53,
+    "end": 64.953,
+    "text": "Real model inference."
+  },
+  {
+    "start": 65.153,
+    "end": 68.743,
+    "text": "Actual local transactions, using fictional business data."
+  },
+  {
+    "start": 68.943,
+    "end": 71.925,
+    "text": "Explore Relay OS, and put the agent to work."
+  }
+]

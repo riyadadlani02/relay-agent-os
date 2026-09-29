@@ -12,3 +12,6 @@ playwright-report/
 test-results/
 *.pem
 *.key
+
+.video-work/
+__pycache__/

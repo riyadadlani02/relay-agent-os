@@ -1,0 +1,68 @@
+[
+  {
+    "id": "intro",
+    "kicker": "RELAY OS / PRODUCT FILM",
+    "title": ["INTELLIGENCE,", "IN YOUR HANDS."],
+    "sentences": ["Give an agent a task.", "Keep control of what happens next.", "Meet Relay O S."]
+  },
+  {
+    "id": "playground",
+    "kicker": "01 / LIVE INFERENCE",
+    "title": ["YOUR WORDS.", "ITS NEXT MOVE."],
+    "sentences": [
+      "Type a request into the playground.",
+      "A real language model runs in your browser, choosing tools and working with the available records.",
+      "No API key required."
+    ]
+  },
+  {
+    "id": "refund",
+    "kicker": "02 / AUTONOMOUS ACTION",
+    "title": ["A REQUEST.", "A REAL RECORD."],
+    "sentences": [
+      "Ask for a forty-nine dollar refund.",
+      "The agent looks up the order and retrieves the policy.",
+      "The runtime checks permission, updates the local record, and saves a receipt."
+    ]
+  },
+  {
+    "id": "approval",
+    "kicker": "03 / HUMAN CONTROL",
+    "title": ["YOUR JUDGMENT.", "YOUR CALL."],
+    "sentences": [
+      "A two-hundred-and-forty-nine dollar refund needs human approval.",
+      "The action pauses before anything changes.",
+      "Approve it, and the runtime commits the result."
+    ]
+  },
+  {
+    "id": "blocked",
+    "kicker": "04 / ENFORCED BOUNDARIES",
+    "title": ["YOUR RULES.", "ENFORCED IN CODE."],
+    "sentences": [
+      "The refund policy sets a five-hundred dollar ceiling.",
+      "These limits are enforced in code.",
+      "The model cannot grant itself permission."
+    ]
+  },
+  {
+    "id": "trace",
+    "kicker": "05 / VISIBLE EVIDENCE",
+    "title": ["EVERY ACTION.", "OPEN TO INSPECTION."],
+    "sentences": [
+      "Inspect tool inputs, policy decisions, and committed receipts.",
+      "Records and approvals survive a refresh.",
+      "Export the session to see exactly what happened."
+    ]
+  },
+  {
+    "id": "outro",
+    "kicker": "EXPLORE / RELAY-AGENT-OS",
+    "title": ["PUT IT", "TO WORK."],
+    "sentences": [
+      "Real model inference.",
+      "Actual local transactions, using fictional business data.",
+      "Explore Relay O S, and put the agent to work."
+    ]
+  }
+]

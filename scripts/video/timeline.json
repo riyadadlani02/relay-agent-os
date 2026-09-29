@@ -1,0 +1,201 @@
+[
+  {
+    "id": "intro",
+    "kicker": "RELAY OS / PRODUCT FILM",
+    "title": ["INTELLIGENCE,", "IN YOUR HANDS."],
+    "sentences": ["Give an agent a task.", "Keep control of what happens next.", "Meet Relay O S."],
+    "start": 0.0,
+    "end": 6.937,
+    "cues": [
+      {
+        "start": 0.65,
+        "end": 2.037,
+        "text": "Give an agent a task."
+      },
+      {
+        "start": 2.237,
+        "end": 4.174,
+        "text": "Keep control of what happens next."
+      },
+      {
+        "start": 4.374,
+        "end": 5.737,
+        "text": "Meet Relay OS."
+      }
+    ]
+  },
+  {
+    "id": "playground",
+    "kicker": "01 / LIVE INFERENCE",
+    "title": ["YOUR WORDS.", "ITS NEXT MOVE."],
+    "sentences": [
+      "Type a request into the playground.",
+      "A real language model runs in your browser, choosing tools and working with the available records.",
+      "No API key required."
+    ],
+    "start": 6.937,
+    "end": 18.75,
+    "cues": [
+      {
+        "start": 7.587,
+        "end": 9.499,
+        "text": "Type a request into the playground."
+      },
+      {
+        "start": 9.699,
+        "end": 15.6,
+        "text": "A real language model runs in your browser, choosing tools and working with the available records."
+      },
+      {
+        "start": 15.8,
+        "end": 17.55,
+        "text": "No API key required."
+      }
+    ]
+  },
+  {
+    "id": "refund",
+    "kicker": "02 / AUTONOMOUS ACTION",
+    "title": ["A REQUEST.", "A REAL RECORD."],
+    "sentences": [
+      "Ask for a forty-nine dollar refund.",
+      "The agent looks up the order and retrieves the policy.",
+      "The runtime checks permission, updates the local record, and saves a receipt."
+    ],
+    "start": 18.75,
+    "end": 30.613,
+    "cues": [
+      {
+        "start": 19.4,
+        "end": 21.418,
+        "text": "Ask for a forty-nine dollar refund."
+      },
+      {
+        "start": 21.618,
+        "end": 24.59,
+        "text": "The agent looks up the order and retrieves the policy."
+      },
+      {
+        "start": 24.79,
+        "end": 29.413,
+        "text": "The runtime checks permission, updates the local record, and saves a receipt."
+      }
+    ]
+  },
+  {
+    "id": "approval",
+    "kicker": "03 / HUMAN CONTROL",
+    "title": ["YOUR JUDGMENT.", "YOUR CALL."],
+    "sentences": [
+      "A two-hundred-and-forty-nine dollar refund needs human approval.",
+      "The action pauses before anything changes.",
+      "Approve it, and the runtime commits the result."
+    ],
+    "start": 30.613,
+    "end": 42.11,
+    "cues": [
+      {
+        "start": 31.263,
+        "end": 35.294,
+        "text": "A two-hundred-and-forty-nine dollar refund needs human approval."
+      },
+      {
+        "start": 35.494,
+        "end": 38.109,
+        "text": "The action pauses before anything changes."
+      },
+      {
+        "start": 38.309,
+        "end": 40.91,
+        "text": "Approve it, and the runtime commits the result."
+      }
+    ]
+  },
+  {
+    "id": "blocked",
+    "kicker": "04 / ENFORCED BOUNDARIES",
+    "title": ["YOUR RULES.", "ENFORCED IN CODE."],
+    "sentences": [
+      "The refund policy sets a five-hundred dollar ceiling.",
+      "These limits are enforced in code.",
+      "The model cannot grant itself permission."
+    ],
+    "start": 42.11,
+    "end": 51.707,
+    "cues": [
+      {
+        "start": 42.76,
+        "end": 46.006,
+        "text": "The refund policy sets a five-hundred dollar ceiling."
+      },
+      {
+        "start": 46.206,
+        "end": 48.134,
+        "text": "These limits are enforced in code."
+      },
+      {
+        "start": 48.334,
+        "end": 50.507,
+        "text": "The model cannot grant itself permission."
+      }
+    ]
+  },
+  {
+    "id": "trace",
+    "kicker": "05 / VISIBLE EVIDENCE",
+    "title": ["EVERY ACTION.", "OPEN TO INSPECTION."],
+    "sentences": [
+      "Inspect tool inputs, policy decisions, and committed receipts.",
+      "Records and approvals survive a refresh.",
+      "Export the session to see exactly what happened."
+    ],
+    "start": 51.707,
+    "end": 62.88,
+    "cues": [
+      {
+        "start": 52.357,
+        "end": 56.156,
+        "text": "Inspect tool inputs, policy decisions, and committed receipts."
+      },
+      {
+        "start": 56.356,
+        "end": 58.928,
+        "text": "Records and approvals survive a refresh."
+      },
+      {
+        "start": 59.128,
+        "end": 61.68,
+        "text": "Export the session to see exactly what happened."
+      }
+    ]
+  },
+  {
+    "id": "outro",
+    "kicker": "EXPLORE / RELAY-AGENT-OS",
+    "title": ["PUT IT", "TO WORK."],
+    "sentences": [
+      "Real model inference.",
+      "Actual local transactions, using fictional business data.",
+      "Explore Relay O S, and put the agent to work."
+    ],
+    "start": 62.88,
+    "end": 74.625,
+    "cues": [
+      {
+        "start": 63.53,
+        "end": 64.953,
+        "text": "Real model inference."
+      },
+      {
+        "start": 65.153,
+        "end": 68.743,
+        "text": "Actual local transactions, using fictional business data."
+      },
+      {
+        "start": 68.943,
+        "end": 71.925,
+        "text": "Explore Relay OS, and put the agent to work."
+      }
+    ]
+  }
+]
