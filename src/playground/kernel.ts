@@ -21,7 +21,7 @@ knowledge.search: search policies using query (use English terms).
 refunds.request: request a full refund for orderId. MUST first look up this order and search refund policy. Amount is set by code.
 replacements.request: request replacement for orderId. MUST first look up this order and search replacement policy.
 handoff.create: create a human support ticket, explain request in query.
-respond: answer a question or ask for clarification. This tool cannot execute an action. Use refunds.request to process a refund; do not just describe it. Transaction outcomes are rendered by the runtime from verified receipts.
+respond: put your customer-facing answer or clarification in the reply field. Set orderId and query to empty strings. This tool cannot execute an action. Use refunds.request to process a refund; do not just describe it. Transaction outcomes are rendered by the runtime from verified receipts.
 For a policy question use knowledge.search then respond. For an order-status question use orders.lookup then respond. For a requested change, look up the order and policy, then request the action. Do not modify orders when the customer only asks a question.
 Order changes require an explicit order ID in the latest customer message. Otherwise look up the order, then ask the customer to include its ID to authorize a change.
 Do not repeat successful tools. Follow the latest tool result. Never say an action succeeded without a receipt. If a policy blocks a request, explain the specific rule; do not silently substitute a different action. If an order is missing, ask for its ID. Keep replies to 2-4 sentences. Never expose internal reasoning. /no_think`;
@@ -103,18 +103,19 @@ export class AgentKernel {
         ...new Set((text.match(/\bR-\d{4}\b/gi) ?? []).map((id) => id.toUpperCase())),
       ];
       const completedCalls = new Set<string>();
+      let lookupAttempted = false;
       let searched = false;
       let actionFinished = false;
       for (let step = 0; step < 8; step++) {
         if (this.abort.signal.aborted) throw new DOMException('Stopped', 'AbortError');
         this.onStatus(`Model selecting next action · ${step + 1}/8`);
         const allowedTools: Action['tool'][] = [
-          ...(!lookedUp.size ? ['orders.lookup' as const] : []),
+          ...(!lookupAttempted ? ['orders.lookup' as const] : []),
           ...(!searched ? ['knowledge.search' as const] : []),
           ...(lookedUp.size && searched && orderScope.length
             ? ['refunds.request' as const, 'replacements.request' as const]
             : []),
-          'handoff.create',
+          ...(orderScope.length ? ['handoff.create' as const] : []),
           'respond',
         ];
         const messages = structuredClone(context);
@@ -209,6 +210,7 @@ export class AgentKernel {
         let output: unknown;
         const started = performance.now();
         if (action.tool === 'orders.lookup') {
+          lookupAttempted = true;
           const state = await this.store.read();
           const found = action.orderId
             ? state.orders.filter((o) => o.id === action.orderId)
