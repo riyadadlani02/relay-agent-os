@@ -1,0 +1,18 @@
+RELAY OS — INTELLIGENCE, IN YOUR HANDS.
+Product film transcript
+
+Give an agent a task. Keep control of what happens next. Meet Relay OS.
+
+Type a request into the playground. A real language model runs in your browser, choosing tools and working with the available records. No API key required.
+
+Ask for a forty-nine dollar refund. The agent looks up the order and retrieves the policy. The runtime checks permission, updates the local record, and saves a receipt.
+
+A two-hundred-and-forty-nine dollar refund needs human approval. The action pauses before anything changes. Approve it, and the runtime commits the result.
+
+The refund policy sets a five-hundred dollar ceiling. These limits are enforced in code. The model cannot grant itself permission.
+
+Inspect tool inputs, policy decisions, and committed receipts. Records and approvals survive a refresh. Export the session to see exactly what happened.
+
+Real model inference. Actual local transactions, using fictional business data. Explore Relay OS, and put the agent to work.
+
+Real browser-model captures, edited for clarity. Fictional business data; local demo transactions only. Synthetic English narration.

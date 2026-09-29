@@ -1,0 +1,64 @@
+WEBVTT
+
+00:00:00.650 --> 00:00:02.037
+Give an agent a task.
+
+00:00:02.237 --> 00:00:04.174
+Keep control of what happens next.
+
+00:00:04.374 --> 00:00:05.737
+Meet Relay OS.
+
+00:00:07.587 --> 00:00:09.499
+Type a request into the playground.
+
+00:00:09.699 --> 00:00:15.600
+A real language model runs in your browser, choosing tools and working with the available records.
+
+00:00:15.800 --> 00:00:17.550
+No API key required.
+
+00:00:19.400 --> 00:00:21.418
+Ask for a forty-nine dollar refund.
+
+00:00:21.618 --> 00:00:24.590
+The agent looks up the order and retrieves the policy.
+
+00:00:24.790 --> 00:00:29.413
+The runtime checks permission, updates the local record, and saves a receipt.
+
+00:00:31.263 --> 00:00:35.294
+A two-hundred-and-forty-nine dollar refund needs human approval.
+
+00:00:35.494 --> 00:00:38.109
+The action pauses before anything changes.
+
+00:00:38.309 --> 00:00:40.910
+Approve it, and the runtime commits the result.
+
+00:00:42.760 --> 00:00:46.006
+The refund policy sets a five-hundred dollar ceiling.
+
+00:00:46.206 --> 00:00:48.134
+These limits are enforced in code.
+
+00:00:48.334 --> 00:00:50.507
+The model cannot grant itself permission.
+
+00:00:52.357 --> 00:00:56.156
+Inspect tool inputs, policy decisions, and committed receipts.
+
+00:00:56.356 --> 00:00:58.928
+Records and approvals survive a refresh.
+
+00:00:59.128 --> 00:01:01.680
+Export the session to see exactly what happened.
+
+00:01:03.530 --> 00:01:04.953
+Real model inference.
+
+00:01:05.153 --> 00:01:08.743
+Actual local transactions, using fictional business data.
+
+00:01:08.943 --> 00:01:11.925
+Explore Relay OS, and put the agent to work.
