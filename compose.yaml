@@ -1,0 +1,10 @@
+services:
+  relay:
+    build: .
+    ports:
+      - '127.0.0.1:4310:4310'
+    volumes:
+      - relay-data:/app/data
+    restart: unless-stopped
+volumes:
+  relay-data:
