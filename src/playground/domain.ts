@@ -75,6 +75,14 @@ export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   text: string;
+  sources?: string[];
+}
+
+export function unsupportedNumbers(reply: string, evidence: unknown[]): number[] {
+  const numbers = (text: string) =>
+    (text.replace(/(\d),(?=\d{3}\b)/g, '$1').match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+  const supported = new Set(numbers(JSON.stringify(evidence)));
+  return [...new Set(numbers(reply).filter((value) => !supported.has(value)))];
 }
 export interface Pending {
   id: string;

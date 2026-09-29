@@ -325,6 +325,14 @@ body {
   font-size: 15px;
   white-space: pre-wrap;
 }
+.answer-sources {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px !important;
+  text-decoration: underline;
+}
 .chat-message.user {
   margin-left: auto;
   background: #cbd3bb;

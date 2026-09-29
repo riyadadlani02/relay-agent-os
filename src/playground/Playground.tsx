@@ -343,6 +343,11 @@ export default function Playground() {
                         : 'Runtime receipt'}
                   </span>
                   <p>{message.text}</p>
+                  {!!message.sources?.length && (
+                    <button className="answer-sources" onClick={() => setTab('policy')}>
+                      Sources: {message.sources.join(', ')}
+                    </button>
+                  )}
                 </article>
               ))}
               {status && (

@@ -5,6 +5,8 @@ import {
   actionSchema,
   commitAction,
   newSession,
+  searchPolicies,
+  unsupportedNumbers,
   type Action,
   type Model,
   type SessionStore,
@@ -181,6 +183,44 @@ describe('live agent tool boundary', () => {
     ).toBe(true);
     expect(requests[4].allowed).not.toContain('refunds.request');
     expect((await store.read()).receipts).toHaveLength(1);
+  });
+  test('unsupported numeric claims are withheld and a corrected sourced reply is shown', async () => {
+    const store = memory();
+    await kernel(store, [
+      action('knowledge.search', '', 'refund'),
+      { ...action('respond'), reply: 'Returns are accepted within 14 days.' },
+      {
+        ...action('respond'),
+        reply:
+          'Returns are accepted within 30 days. Refunds up to $100 are automatic; up to $500 require review.',
+      },
+    ]).send('What is your refund policy?');
+    const session = await store.read();
+    expect(session.messages.some((m) => m.text.includes('14 days'))).toBe(false);
+    expect(session.messages.find((m) => m.role === 'assistant')?.text).toContain('30 days');
+    expect(session.messages.find((m) => m.role === 'assistant')?.sources).toContain('REF-01');
+    expect(session.traces.some((t) => t.name === 'answer.unsupported_facts')).toBe(true);
+    expect(session.receipts).toHaveLength(0);
+  });
+  test('an answer that fails its one correction is withheld without further actions', async () => {
+    const store = memory();
+    await expect(
+      kernel(store, [
+        action('knowledge.search', '', 'refund'),
+        { ...action('respond'), reply: 'The window is 14 days.' },
+        { ...action('respond'), reply: 'The window is 60 days.' },
+      ]).send('What is the refund window?'),
+    ).rejects.toThrow('could not ground its answer');
+    const session = await store.read();
+    expect(session.messages.filter((m) => m.role === 'assistant')).toEqual([]);
+    expect(session.receipts).toHaveLength(0);
+    expect(session.traces.filter((t) => t.kind === 'model')).toHaveLength(3);
+  });
+  test('numeric grounding accepts retrieved amounts and rejects invented values', () => {
+    const evidence = searchPolicies('refund');
+    expect(unsupportedNumbers('30 days, $100 automatic, $500 review.', evidence)).toEqual([]);
+    expect(unsupportedNumbers('14 days and $1,000.', evidence)).toEqual([14, 1000]);
+    expect(unsupportedNumbers('Your total is $49.00.', [{ amount: '$49.00' }])).toEqual([]);
   });
   test('approval rechecks eligibility inside the write transaction', async () => {
     const store = memory();

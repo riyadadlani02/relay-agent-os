@@ -54,6 +54,8 @@ The UI does not expose chain-of-thought. The visible evidence is actions and res
 
 Model-generated information answers can still be inaccurate. Each is accompanied by an explicit notice that no order changes occurred. Transaction results are always runtime receipts, never generated success prose. Prompt injection tests prove the tested code boundaries, not universal model robustness. The small model may choose a poor tool, fail structured generation, or reach its step budget; the UI shows the failure and does not fabricate success.
 
+An answer check rejects numeric claims absent from the retrieved evidence and allows one correction using a clean context containing only the question and source facts. If that also fails, the answer is withheld. This catches unsupported amounts and return windows (for example, an invented “14 days” when the retrieved policy says 30). Accepted policy answers expose their retrieved source IDs. This is a bounded factual check, not a guarantee that every nonnumeric statement is correct.
+
 ## Run with a local server model
 
 `npm run dev` also supports the existing `MODEL_BASE_URL`, `MODEL_NAME`, and `MODEL_API_KEY` settings. The endpoint must implement chat completions with JSON-schema output. The UI displays the configured model explicitly. Requests go to the local Express proxy so API keys never enter the frontend.
@@ -72,7 +74,7 @@ MODEL_API_KEY=ollama
 
 Unit tests use a model explicitly named “Test fixture (not AI)” to verify hard limits, missing prerequisites, approval replay/rejection, expiry recheck, duplicate refunds, cancellation, and competing IndexedDB transactions. Browser tests verify route styles, records, policy content, responsive layout, and automated accessibility. These tests do not download a model or claim to evaluate its linguistic quality.
 
-Real Qwen inference was also exercised locally in a WebGPU browser: an automatic $49 refund produced a persisted receipt, a $249 refund paused for approval and committed after approval, and an adversarial $750 request was blocked. The first request on a cold model may take substantially longer than later requests while inference and grammar kernels initialize. These are smoke tests, not a measured model-quality benchmark.
+Real Qwen inference was also exercised locally in a WebGPU browser: an automatic $49 refund produced a persisted receipt, a $249 refund paused for approval and committed after approval, and an adversarial $750 request was blocked. The first request on a cold model may take substantially longer than later requests while inference and grammar kernels initialize. A policy question also exercised the numeric-answer guard: an invented 14-day window was withheld, and the model regenerated an answer with the correct 30-day window and $100/$500 thresholds from retrieved sources. These are smoke tests, not a measured model-quality benchmark.
 
 Two design decisions came directly from actual model behavior: capability sets narrow after successful reads to prevent repeated retrieval loops, and transaction-result wording is owned by the runtime because a model can produce an incorrect success claim after a rejected action. Explicit order scope and completed-turn context prevent an earlier request from silently becoming the next action target.
 
