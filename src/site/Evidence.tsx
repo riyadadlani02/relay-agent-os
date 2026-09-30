@@ -43,7 +43,7 @@ export default function Evidence() {
             <p>Evidence you can inspect</p>
             <h2 id="evidence-title">Test the boundary.</h2>
           </div>
-          <a href={`${repo}/blob/main/docs/evaluation.md`}>
+          <a href={`${repo}/blob/main/docs/gauntlet.md`}>
             Method, limitations & reproduction <ArrowUpRight size={17} />
           </a>
         </div>
