@@ -87,8 +87,9 @@ export function actionVariants(view: ProcessView, constrain: boolean): Variant[]
       const values = heldResources(view, prefix);
       if (!values) continue;
       args.properties[field] = str(values);
-      // A write the process lacks authority for is still worth proposing: the owner may consent.
-      if (syscall.effect === 'write' && values.length) usable = true;
+      // A write the process lacks authority for is still worth proposing if it may ask the owner.
+      const mayAsk = view.canAsk === '*' || view.canAsk.includes(syscall.name);
+      if (syscall.effect === 'write' && values.length && mayAsk) usable = true;
       if (!values.length) usable = false;
     }
     if (!usable) continue;

@@ -1,11 +1,13 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
 import { verify } from '../src/os/journal';
-import { bootLive, customers, startConversation } from '../src/os/support';
+import { bootLive, customers, runWorkflow, startConversation } from '../src/os/support';
+import type { RunnerMemory } from '../src/os/workflow';
 import { HostedModel, modelConfig } from '../server/model-client';
 
 // Paid and explicit: a hosted model drives every agent in the four-customer scenario.
-// Usage: npm run os:live -- --live [--unconstrained]
+// Usage: npm run os:live -- --live [--unconstrained] [--workflows]
+// --workflows runs multi-agent workflows (refund-verified, handoff, status) instead of one concierge.
 // Simulated people answer prompts. A customer confirms only a refund of the order their request
 // is about, and only if they asked for a refund; the operator approves reviews. Results go to
 // data/os-live/ (ignored by Git) until you choose to publish them.
@@ -13,6 +15,13 @@ if (!process.argv.includes('--live'))
   throw new Error('This calls a paid model provider. Pass --live explicitly.');
 if (existsSync('.env')) loadEnvFile('.env');
 const constrained = !process.argv.includes('--unconstrained');
+const workflows = process.argv.includes('--workflows');
+const workflowFor: Record<string, string> = {
+  alice: 'refund-verified',
+  bob: 'refund-verified',
+  carol: 'handoff',
+  dave: 'status',
+};
 const capUsd = 0.25;
 let spent = 0;
 let reserved = 0;
@@ -31,7 +40,9 @@ const model = new HostedModel(
   },
 );
 const kernel = bootLive({ model: () => model, constrain: () => constrained });
-for (const c of customers) startConversation(kernel, c.id, c.request);
+for (const c of customers)
+  if (workflows) runWorkflow(kernel, workflowFor[c.id], c.id, c.request);
+  else startConversation(kernel, c.id, c.request);
 
 const decisions: {
   request: string;
@@ -75,6 +86,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   model: model.name,
   constrained,
+  mode: workflows ? 'workflows' : 'concierge',
   scope:
     'Hosted-model agents on the Relay kernel with simulated customers and operator. Fictional in-memory records; no payment API.',
   wallTimeMs: Math.round(performance.now() - started),
@@ -89,6 +101,7 @@ const report = {
       steps: p.used.steps,
       tokens: p.used.tokens,
       children: kernel.processes.filter((c) => c.ppid === p.pid).map((c) => c.exit),
+      ...(p.program === 'workflow' ? { workflowSteps: (p.memory as RunnerMemory).states } : {}),
     })),
   decisions,
   refused: failures.map((e) => ({ pid: e.pid, ...(e.data as object) })),
@@ -98,7 +111,7 @@ const report = {
   journal: kernel.journal,
 };
 mkdirSync('data/os-live', { recursive: true });
-const path = `data/os-live/${model.name}-${constrained ? 'constrained' : 'unconstrained'}-${report.generatedAt.replace(/[:.]/g, '-')}.json`;
+const path = `data/os-live/${model.name}-${workflows ? 'workflows' : 'concierge'}-${constrained ? 'constrained' : 'unconstrained'}-${report.generatedAt.replace(/[:.]/g, '-')}.json`;
 writeFileSync(path, JSON.stringify(report, null, 2) + '\n');
 console.log(
   JSON.stringify(

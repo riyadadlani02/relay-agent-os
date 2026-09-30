@@ -68,6 +68,8 @@ export interface ProcessView {
   ppid: number | null;
   owner: string;
   capabilities: { id: string; rights: string[]; resource: string; uses: number | null }[];
+  /** Calls this process may put in front of its owner for consent. */
+  canAsk: Escalation;
   syscalls: SyscallInfo[];
   budget: { steps: number; tokens: number };
   mailbox: number;
@@ -107,6 +109,8 @@ export interface Process {
   budget: { steps: number; tokens: number };
   used: { steps: number; tokens: number };
   memory: unknown;
+  /** Calls this process may escalate to its owner for consent. */
+  escalate: Escalation;
   last?: Outcome;
   mailbox: Envelope[];
   exit?: { status: 'ok' | 'killed' | 'budget' | 'fault'; value?: unknown; reason?: string };
@@ -142,6 +146,15 @@ export interface Grant {
   uses?: number | null;
   expiresAt?: number | null;
 }
+
+/** `*` means any call the owner could authorize; a list narrows it; `[]` means never ask. */
+export type Escalation = '*' | string[];
+const narrowEscalation = (parent: Escalation, requested?: string[]): Escalation =>
+  requested === undefined
+    ? parent
+    : parent === '*'
+      ? [...new Set(requested)]
+      : requested.filter((r) => parent.includes(r));
 
 export class KernelError extends Error {}
 const resultOf = (p: Process) =>
@@ -186,6 +199,7 @@ const spawnSchema = z
     priority: z.number().int().min(0).max(9).optional(),
     budget: budgetSchema,
     delegate: z.array(grantSchema).max(8).default([]),
+    escalate: z.array(z.string().min(1).max(64)).max(16).optional(),
   })
   .strict();
 const sendSchema = z.object({ to: z.number().int().positive(), body: z.json() }).strict();
@@ -269,6 +283,7 @@ export class RelayKernel<W> {
       priority?: number;
       budget: { steps: number; tokens: number };
       grants?: Grant[];
+      escalate?: string[];
     },
   ): number {
     if (by.kind === 'process') throw new KernelError('Processes spawn children with proc.spawn.');
@@ -290,7 +305,9 @@ export class RelayKernel<W> {
     });
     this.capabilities = scratch;
     this.ids.pid = pid;
-    this.processes.push(this.newProcess(pid, null, program, spec, budget));
+    this.processes.push(
+      this.newProcess(pid, null, program, spec, budget, narrowEscalation('*', spec.escalate)),
+    );
     this.log('process.spawned', pid, {
       program: spec.program,
       owner: spec.owner,
@@ -307,6 +324,7 @@ export class RelayKernel<W> {
     program: Program,
     spec: { owner: string; name?: string; arg?: unknown; priority?: number },
     budget: { steps: number; tokens: number },
+    escalate: Escalation,
   ): Process {
     return {
       pid,
@@ -319,6 +337,7 @@ export class RelayKernel<W> {
       budget: { ...budget },
       used: { steps: 0, tokens: 0 },
       memory: program.init(structuredClone(spec.arg)),
+      escalate,
       mailbox: [],
       scheduledAt: 0,
     };
@@ -358,6 +377,7 @@ export class RelayKernel<W> {
         resource,
         uses,
       })),
+      canAsk: p.escalate,
       syscalls: this.syscallInfo,
       budget: p.budget,
       mailbox: p.mailbox.length,
@@ -500,6 +520,13 @@ export class RelayKernel<W> {
         spec.name,
         'EPERM',
         `Neither this process nor its owner (${p.owner}) may ${spec.name} ${resource}.`,
+      );
+    if (!auth.ok && p.escalate !== '*' && !p.escalate.includes(spec.name))
+      return this.fail(
+        p,
+        spec.name,
+        'EPERM',
+        `This process may not ask ${p.owner} to authorize ${spec.name}.`,
       );
     const policy = this.policy(spec, args);
     // Never ask a person to authorize something that cannot happen.
@@ -706,6 +733,8 @@ export class RelayKernel<W> {
         program,
         { ...args, owner: p.owner, priority: args.priority ?? p.priority },
         args.budget,
+        // A child can put at most what its parent could in front of a person.
+        narrowEscalation(p.escalate, args.escalate),
       ),
     );
     // Parent and child may message each other; nobody else gains a channel.

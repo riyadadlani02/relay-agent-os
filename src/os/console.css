@@ -468,6 +468,46 @@ body {
   padding: 10px 0;
   border-bottom: 1px solid #c4cab3;
 }
+.os-flow {
+  border: 1px solid var(--line);
+  background: #f1f3ea;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.os-flow ol {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+.os-flow small {
+  display: block;
+  color: var(--muted);
+}
+.os-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.os-step {
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  font-size: 11px;
+  background: #f1f3ea;
+}
+.os-step-running {
+  border-color: var(--orange);
+  background: #f7e1d2;
+}
+.os-step-done {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.os-step-failed,
+.os-step-skipped {
+  border-color: var(--rust);
+  color: var(--rust);
+}
 .os-reason {
   display: block;
   white-space: normal;

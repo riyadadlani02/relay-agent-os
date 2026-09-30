@@ -23,8 +23,9 @@ The runtime is generalized into a small kernel for agents ([design](docs/kernel.
 - **IPC** only over channels the kernel created between parent and child.
 - **Hash-chained journal:** editing any committed entry breaks verification from that point on.
 - **Real LLM agents as processes:** a model proposes one syscall per step as strict JSON, sees the kernel's answer (including refusals), and can spawn a child agent with narrowed authority. Runs in the browser (Qwen, WebGPU), through a local server model, or from Node.
+- **Multi-agent workflows as data:** steps run in parallel where they can, each step holds only its own capabilities, and a consent scope decides which step may ask the customer anything. Three examples: refund with parallel checks and an audit, escalation to a person, and a read-only answer.
 
-The console's scripted scenario runs four customers concurrently on one kernel: an automatic refund after consent, a $249 refund that needs consent and an operator, a prompt-injected agent confined by its capabilities, and a looping agent stopped by its budget. Those programs are scripted so every decision is reproducible. Its **Live AI agents** mode runs real models on the same kernel. The adapter is tested with scripted fixtures and mocked providers; model quality on this multi-agent flow has not been measured yet (`npm run os:live -- --live` is the paid, capped way to do it). 34 unit tests cover the kernel and 5 more the agent adapter. Disabling any of the kernel's key checks (owner authority, capability spending, read isolation, discarding late proposals, revoking rejected grants) makes a test fail.
+The console's scripted scenario runs four customers concurrently on one kernel: an automatic refund after consent, a $249 refund that needs consent and an operator, a prompt-injected agent confined by its capabilities, and a looping agent stopped by its budget. Those programs are scripted so every decision is reproducible. Its **Live AI agents** mode runs real models on the same kernel. The adapter is tested with scripted fixtures and mocked providers; model quality on this multi-agent flow has not been measured yet (`npm run os:live -- --live` is the paid, capped way to do it). 36 unit tests cover the kernel, 5 the agent adapter and 6 the workflow engine. Disabling any of the kernel's key checks (owner authority, capability spending, read isolation, discarding late proposals, revoking rejected grants) makes a test fail.
 
 ## Relay Gauntlet: the safety claim is now falsifiable
 
@@ -138,6 +139,7 @@ npm run eval:live         # paid hosted evaluation; explicit opt-in, $2.10 invoc
 npm run eval:frontier     # paid GPT-5.4 examples; $0.18 invocation cap
 npm run gauntlet:replay   # free: recorded Qwen tool choices through the current kernel
 npm run os:live -- --live # paid: hosted-model agents on the kernel; $0.25 cap
+npm run os:live -- --live --workflows  # same budget, multi-agent workflows
 npx tsx scripts/summarize-evidence.ts
 ```
 

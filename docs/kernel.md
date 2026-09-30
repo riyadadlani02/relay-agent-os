@@ -39,15 +39,16 @@ flowchart LR
 
 [`capability.ts`](../src/os/capability.ts) is the only source of authority. A capability names a holder, a set of rights (syscall names), a resource (`order:R-1042`, or a prefix pattern such as `order:*`), remaining uses, an expiry and the issuer.
 
-| Property                         | Rule                                                                                                                   |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Minting                          | Only the kernel, a user or an operator can mint. A process can never create authority.                                 |
-| Delegation                       | A holder can derive a narrower capability: rights ⊆, resource ⊆, uses ≤, expiry ≤.                                     |
-| Use-limited authority            | Uses are carved out of the parent, so delegating one use of a two-use grant leaves one. Delegation cannot multiply it. |
-| Revocation                       | Revoking a capability revokes everything derived from it. Derived capabilities also check their ancestors.             |
-| Exit                             | A process's capabilities are revoked when it exits, which revokes whatever it delegated.                               |
-| Consent is delegation            | Consent derives a one-use, exact-resource capability from the owner's own authority. It cannot exceed what they hold.  |
-| Nobody consents for someone else | If the owner holds no authority over the resource, the call fails with `EPERM` and no prompt is shown.                 |
+| Property                         | Rule                                                                                                                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Minting                          | Only the kernel, a user or an operator can mint. A process can never create authority.                                                                                                   |
+| Delegation                       | A holder can derive a narrower capability: rights ⊆, resource ⊆, uses ≤, expiry ≤.                                                                                                       |
+| Use-limited authority            | Uses are carved out of the parent, so delegating one use of a two-use grant leaves one. Delegation cannot multiply it.                                                                   |
+| Revocation                       | Revoking a capability revokes everything derived from it. Derived capabilities also check their ancestors.                                                                               |
+| Exit                             | A process's capabilities are revoked when it exits, which revokes whatever it delegated.                                                                                                 |
+| Consent is delegation            | Consent derives a one-use, exact-resource capability from the owner's own authority. It cannot exceed what they hold.                                                                    |
+| Nobody consents for someone else | If the owner holds no authority over the resource, the call fails with `EPERM` and no prompt is shown.                                                                                   |
+| Consent scope                    | Each process has a list of calls it may put in front of its owner (`*` for any). Children inherit it and can only narrow it. Outside it, a write fails with `EPERM` and nobody is asked. |
 
 The live playground uses the same module for its write boundary: a customer's confirmation mints a single-use capability for one tool and one order, and `commitAction` spends it. See [the playground's enforced boundaries](live-playground.md#boundaries-enforced-outside-the-model).
 
@@ -102,6 +103,22 @@ The script writes a full report (answers, decisions, every refusal, receipts, jo
 
 **What has been verified, and what has not.** `tests/agent.test.ts` drives the adapter with a scripted fixture (not a model): schema contents and strictness, the full spawn/consent/commit flow, an unconstrained fixture proposing cross-tenant reads and refunds, amplified delegation and garbage output (all refused), budget exhaustion and a missing model. `tests/live-api.test.ts` checks that the server forwards the kernel's schema as strict structured output. A browser test runs the live console against a scripted responder at the HTTP boundary. `os:live` was exercised against a local mock provider. **No real model has been run on the kernel yet in this repository**: WebGPU and a provider key were unavailable where this was built. Treat model quality on this task as unmeasured until you run it.
 
+## Multi-agent workflows
+
+[`workflow.ts`](../src/os/workflow.ts) describes a workflow as data: steps, each with an agent program, a task template, **the capabilities that step alone receives**, the calls it may ask the customer to confirm, and the steps it waits for. A deterministic `workflow` runner process starts every step whose dependencies are done, so independent steps run in parallel. It hands each step the results it depends on, collects exits over IPC, skips anything downstream of a failed step, and returns the answer step's result.
+
+The runner is trusted code but an ordinary process. It is derived from the authority of the person who starts it, and holds the union of its steps' grants plus the right to start each program. It can delegate only narrowed copies of that union, so a workflow can never do more than the person who started it could. Its budget is sized from the steps' budgets, and each child's budget is carved from it.
+
+Three workflows ship in [`support.ts`](../src/os/support.ts) and appear in the console's live mode:
+
+| Workflow           | Steps                                                                             | Who may ask the customer |
+| ------------------ | --------------------------------------------------------------------------------- | ------------------------ |
+| Refund with checks | Order check ∥ policy check → refund → audit → reply (writer with no capabilities) | Only the refund step     |
+| Escalate to person | Investigate → handoff (one pre-authorized, single-use ticket) → reply             | Nobody                   |
+| Answer a question  | Investigate → reply                                                               | Nobody                   |
+
+`tests/workflow.test.ts` checks, with scripted fixtures: the two checks overlap in time; each step holds only its own grants, and a step calling outside them gets `EPERM`; the customer is asked exactly once, by the refund step; later steps see earlier results; a failed step skips its dependents and nothing changes; the handoff spends its single ticket and a second attempt is refused without a prompt; a read-only workflow cannot put a change in front of the customer; and a workflow asking for another customer's order cannot be started. Disabling failure skipping, per-step delegation, consent scoping or result passing each fails a test. `npm run os:live -- --live --workflows` runs all three with a hosted model.
+
 ## What this closed, and how it was checked
 
 The Gauntlet's one measured unauthorized action was Qwen refunding order R-1042 in a request that said “Do not refund or replace it.” The amount and duplicate checks allowed it because they cannot know intent. The fix is structural, not a prompt change: customer intent now arrives through a confirmation the model cannot write, as a capability bound to one action.
@@ -123,7 +140,7 @@ The hosted and browser model reports in [the results](gauntlet-results.md) were 
 
 ## Next
 
-1. Measure model-driven agents: run `os:live` with hosted models and the browser model, and add the four-customer scenario and injected variants to the Gauntlet.
+1. Measure model-driven agents and workflows: run `os:live` (with and without `--workflows`) on hosted models and the browser model, and add injected variants to the Gauntlet.
 2. Durable kernel checkpoints (process table, capabilities, journal, agent memory) in SQLite and IndexedDB, with replay after restart.
 3. Move the playground's refund agent onto the scheduler.
 4. Authenticated principals, per-tenant quotas, and anchoring journal heads externally.

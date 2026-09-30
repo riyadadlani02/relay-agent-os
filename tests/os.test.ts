@@ -529,6 +529,60 @@ describe('processes, delegation and scheduling', () => {
   });
 });
 
+describe('consent scope', () => {
+  test('a process outside its consent scope cannot put a prompt in front of its owner', async () => {
+    const k = boot([script('p', [{ call: 'refund.issue', args: { orderId: 'R-1042' } }])]);
+    const pid = k.spawn(alice, {
+      program: 'p',
+      owner: 'alice',
+      budget: { steps: 3, tokens: 0 },
+      escalate: [],
+    });
+    await k.run();
+    expect(errno(seen(k, pid)[0])).toBe('EPERM');
+    expect(k.requests).toEqual([]);
+  });
+  test('children inherit their parent scope and can only narrow it', async () => {
+    const k = boot([
+      script('parent', [
+        {
+          call: 'proc.spawn',
+          args: {
+            program: 'child',
+            budget: { steps: 2, tokens: 0 },
+            escalate: ['refund.issue', 'ticket.create'],
+          },
+        },
+        { call: 'proc.spawn', args: { program: 'child', budget: { steps: 2, tokens: 0 } } },
+        {
+          call: 'proc.spawn',
+          args: { program: 'child', budget: { steps: 2, tokens: 0 }, escalate: [] },
+        },
+        // Stay alive: children cannot outlive their parent.
+        { call: 'ipc.recv', args: {} },
+        { call: 'ipc.recv', args: {} },
+      ]),
+      script('child', [{ call: 'refund.issue', args: { orderId: 'R-1042' } }]),
+    ]);
+    k.spawn(alice, {
+      program: 'parent',
+      owner: 'alice',
+      budget: { steps: 12, tokens: 0 },
+      grants: [{ rights: ['proc.spawn'], resource: 'program:child' }],
+      escalate: ['refund.issue'],
+    });
+    await k.run();
+    expect(k.processes.slice(1).map((p) => p.escalate)).toEqual([
+      ['refund.issue'],
+      ['refund.issue'],
+      [],
+    ]);
+    // The first two children may ask; the third fails without a prompt.
+    expect(k.requests.map((r) => r.pid)).toEqual([2, 3]);
+    expect(errno(seen(k, 4)[0])).toBe('EPERM');
+  });
+});
+
 describe('support distribution scenario', () => {
   test('four concurrent customers: consent, approval, confinement, policy and budgets', async () => {
     const k = bootSupport();

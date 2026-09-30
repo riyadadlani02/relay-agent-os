@@ -23,13 +23,28 @@ import type { AgentModel } from './agent';
 import { verify, type JournalEntry } from './journal';
 import { isLive } from './capability';
 import type { StepRecord } from './kernel';
-import { bootLive, bootSupport, customers, startConversation } from './support';
+import {
+  bootLive,
+  bootSupport,
+  customers,
+  runWorkflow,
+  startConversation,
+  supportWorkflows,
+} from './support';
+import type { RunnerMemory, StepStatus } from './workflow';
 
 const repo = 'https://github.com/riyadadlani02/relay-agent-os';
 const operator = { kind: 'operator' as const, id: 'ops' };
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 type Mode = 'scripted' | 'live';
+const stepMark: Record<StepStatus, string> = {
+  pending: '·',
+  running: '…',
+  done: '✓',
+  failed: '✗',
+  skipped: '–',
+};
 const answerOf = (value: unknown) =>
   typeof (value as { result?: unknown } | undefined)?.result === 'string'
     ? (value as { result: string }).result
@@ -58,6 +73,8 @@ export default function KernelConsole() {
   const [customer, setCustomer] = useState(customers[0].id);
   const [message, setMessage] = useState(customers[0].request);
   const [constrain, setConstrain] = useState(true);
+  const [flow, setFlow] = useState('concierge');
+  const workflow = supportWorkflows.find((w) => w.id === flow);
 
   useEffect(() => {
     if (import.meta.env.MODE === 'pages') return;
@@ -131,7 +148,11 @@ export default function KernelConsole() {
     }
   }
   function start() {
-    act(() => startConversation(kernel.current, customer, message));
+    act(() =>
+      workflow
+        ? runWorkflow(kernel.current, workflow.id, customer, message)
+        : startConversation(kernel.current, customer, message),
+    );
   }
   function act(action: () => void) {
     setError('');
@@ -307,6 +328,57 @@ export default function KernelConsole() {
                     </select>
                   </label>
                   <label>
+                    Agents
+                    <select
+                      value={flow}
+                      disabled={running}
+                      onChange={(e) => setFlow(e.target.value)}
+                    >
+                      <option value="concierge">One concierge agent that decides for itself</option>
+                      {supportWorkflows.map((w) => (
+                        <option key={w.id} value={w.id}>
+                          Workflow: {w.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {workflow && (
+                    <div className="os-flow">
+                      <p>{workflow.summary}</p>
+                      <ol>
+                        {workflow.steps.map((step) => (
+                          <li key={step.id}>
+                            <b>{step.title}</b> <span>({step.program})</span>
+                            {step.after?.length ? (
+                              <small>
+                                after{' '}
+                                {step.after
+                                  .map((d) => workflow.steps.find((x) => x.id === d)!.title)
+                                  .join(' + ')}
+                              </small>
+                            ) : (
+                              <small>starts immediately</small>
+                            )}
+                            <small>
+                              holds:{' '}
+                              {step.grants.length
+                                ? step.grants
+                                    .map(
+                                      (g) =>
+                                        `${g.rights.join(', ')} on ${g.resource.replace('{orderId}', 'the order')}${g.uses ? ` (${g.uses} use)` : ''}`,
+                                    )
+                                    .join('; ')
+                                : 'nothing'}
+                              {step.escalate?.length
+                                ? ` · may ask the customer to confirm ${step.escalate.join(', ')}`
+                                : ' · may not ask anyone'}
+                            </small>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                  <label>
                     Message
                     <textarea
                       rows={3}
@@ -335,7 +407,8 @@ export default function KernelConsole() {
                       disabled={!engine.name || running || !message.trim()}
                       onClick={start}
                     >
-                      <Bot size={15} /> Start {customer}&apos;s agent
+                      <Bot size={15} />{' '}
+                      {workflow ? `Start workflow for ${customer}` : `Start ${customer}'s agent`}
                     </button>
                   </div>
                 </div>
@@ -358,7 +431,18 @@ export default function KernelConsole() {
                     <li key={p.pid}>
                       <b>
                         {p.owner} · pid {p.pid}
+                        {p.program === 'workflow' && ` · ${(p.memory as RunnerMemory).title}`}
                       </b>
+                      {p.program === 'workflow' && (
+                        <span className="os-steps" aria-label="Workflow steps">
+                          {(p.memory as RunnerMemory).states.map((st) => (
+                            <span key={st.id} className={`os-step os-step-${st.status}`}>
+                              {stepMark[st.status]} {st.title}
+                              {st.pid ? ` · pid ${st.pid}` : ''}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                       <span>
                         {p.state === 'exited'
                           ? p.exit?.status === 'ok'
@@ -517,7 +601,15 @@ export default function KernelConsole() {
                   </span>
                   <code>{r.proposal}</code>
                   <b>{r.result}</b>
-                  {r.note && <small>{mode === 'live' ? `Model's note: ${r.note}` : r.note}</small>}
+                  {r.note && (
+                    <small>
+                      {mode === 'scripted'
+                        ? r.note
+                        : view.processes.find((p) => p.pid === r.pid)?.program === 'workflow'
+                          ? `Runner: ${r.note}`
+                          : `Model's note: ${r.note}`}
+                    </small>
+                  )}
                 </li>
               ))}
             </ol>

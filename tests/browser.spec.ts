@@ -115,3 +115,37 @@ test('kernel console runs model-driven agents through the server model route', a
   await expect(page.getByText(/^1 receipts/)).toBeVisible();
   await expect(page.getByText(/chain verified/)).toBeVisible();
 });
+
+test('kernel console runs a multi-agent workflow with per-step authority', async ({ page }) => {
+  // Scripted responder at the HTTP boundary, not AI; PIDs are deterministic.
+  const act = (call: string, args: object = {}) => ({ note: '', action: { call, args } });
+  const exit = (result: string) => act('exit', { result });
+  const script: Record<number, object[]> = {
+    2: [act('orders.read', { orderId: 'R-1042' }), exit('R-1042, $49.00, not refunded.')],
+    3: [act('kb.search', { query: 'refund' }), exit('Up to $100 is automatic.')],
+    4: [act('refund.issue', { orderId: 'R-1042' }), exit('Refund committed.')],
+    5: [act('orders.read', { orderId: 'R-1042' }), exit('Record shows refunded.')],
+    6: [exit('Your refund is complete.')],
+  };
+  await page.route('**/api/live/config', (route) =>
+    route.fulfill({ json: { enabled: true, model: 'scripted responder' } }),
+  );
+  await page.route('**/api/live/generate', (route) => {
+    const body = JSON.parse(route.request().postData()!);
+    const pid = Number(/You run as process (\d+)/.exec(body.messages[0].content)![1]);
+    return route.fulfill({ json: { content: JSON.stringify(script[pid].shift()), tokens: 700 } });
+  });
+  await page.goto('/?os=1');
+  await page.getByRole('button', { name: 'Live AI agents' }).click();
+  await page.getByRole('button', { name: /Use local server model/ }).click();
+  await page.getByLabel('Agents').selectOption('refund-verified');
+  await expect(page.getByText('may ask the customer to confirm refund.issue')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Start workflow for alice' }).click();
+  const run = page.getByRole('button', { name: 'Run until a person is needed' });
+  await run.click();
+  await page.getByRole('button', { name: 'Confirm as alice' }).click();
+  await run.click();
+  await expect(page.getByText('Your refund is complete.')).toBeVisible();
+  await expect(page.getByLabel('Workflow steps')).toHaveText(/✓ Order check.*✓ Customer reply/);
+  await expect(page.getByText(/^1 receipts/)).toBeVisible();
+});

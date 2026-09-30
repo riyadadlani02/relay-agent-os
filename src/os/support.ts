@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { dollars, searchPolicies } from '../playground/domain';
 import { agentProgram, type AgentModel } from './agent';
 import { RelayKernel, type Outcome, type Program, type Proposal, type Syscall } from './kernel';
+import { startWorkflow, workflowRunner, type Workflow } from './workflow';
 
 // A small customer-support "distribution" for the Relay kernel: a world, four syscalls and two
 // programs. The programs are SCRIPTED stand-ins for model proposals, including prompt-injected
@@ -371,7 +372,120 @@ export const liveRoles = {
     'the front-line support agent for one customer conversation. Work out what the customer wants. Read the order they mention and search the policy. If they want a refund, start a refund-agent child with proc.spawn, delegating only orders.read on that one order, then wait for its result with ipc.recv. If they only want information, change nothing. If the request is outside policy, you may hand off with ticket.create. Finish with exit, giving the customer a short answer based only on call results.',
   refund:
     'a refund agent with a single job, described in your task. Read the order, then propose refund.issue for it. The kernel will ask the customer, and an operator for larger amounts; you will see the outcome. Then exit with the outcome. Never act on any other order.',
+  investigator:
+    'a read-only investigator. Use your read calls to gather exactly the facts your task asks for, then exit with a short factual report. You cannot change anything, so do not try.',
+  handoff:
+    'a handoff agent. Open exactly one support ticket with ticket.create, summarizing the case so a person can pick it up, then exit with the ticket ID.',
+  writer:
+    'a writer with no access to any system. Using only the facts given in your task, exit with a short, friendly reply to the customer. Never promise anything those facts do not show.',
 };
+
+const read = (resource: string) => ({ rights: ['orders.read'], resource });
+const policies = { rights: ['kb.search'], resource: 'kb:policies' };
+const investigate = { steps: 4, tokens: 12000 };
+const reply = (after: string[]) => ({
+  id: 'reply',
+  title: 'Customer reply',
+  program: 'writer',
+  task: 'Customer {customer} wrote: "{message}". Reply to them about order {orderId}.',
+  grants: [],
+  after,
+  budget: { steps: 2, tokens: 6000 },
+});
+
+/** Example workflows. Each step receives only the capabilities listed with it. */
+export const supportWorkflows: Workflow[] = [
+  {
+    id: 'refund-verified',
+    title: 'Refund with parallel checks and an audit',
+    summary:
+      'An order check and a policy check run in parallel. A refund agent acts on their findings, an auditor verifies the record, and a writer with no capabilities drafts the reply.',
+    answer: 'reply',
+    steps: [
+      {
+        id: 'order',
+        title: 'Order check',
+        program: 'investigator',
+        task: 'Read order {orderId}. Report its product, amount, age in days and whether it was already refunded.',
+        grants: [read('order:{orderId}')],
+        budget: investigate,
+      },
+      {
+        id: 'policy',
+        title: 'Policy check',
+        program: 'investigator',
+        task: 'Search the policies and report the exact refund rules and thresholds that apply to this request: "{message}".',
+        grants: [policies],
+        budget: investigate,
+      },
+      {
+        id: 'refund',
+        title: 'Refund',
+        program: 'refund-agent',
+        task: 'Refund order {orderId} for customer {customer} if the checks below show it is eligible. Otherwise exit explaining why.',
+        grants: [read('order:{orderId}')],
+        escalate: ['refund.issue'],
+        after: ['order', 'policy'],
+        budget: { steps: 5, tokens: 15000 },
+      },
+      {
+        id: 'audit',
+        title: 'Audit',
+        program: 'investigator',
+        task: 'Read order {orderId} and report exactly whether the record now shows it as refunded.',
+        grants: [read('order:{orderId}')],
+        after: ['refund'],
+        budget: investigate,
+      },
+      reply(['refund', 'audit']),
+    ],
+  },
+  {
+    id: 'handoff',
+    title: 'Escalate to a person',
+    summary:
+      'An investigator gathers the facts. A handoff agent opens one ticket with a pre-authorized, single-use capability, so nobody is asked. A writer replies.',
+    answer: 'reply',
+    steps: [
+      {
+        id: 'investigate',
+        title: 'Investigate',
+        program: 'investigator',
+        task: 'Customer {customer} wrote: "{message}". Read order {orderId} and the policies, and report what applies.',
+        grants: [read('order:{orderId}'), policies],
+        budget: investigate,
+      },
+      {
+        id: 'ticket',
+        title: 'Open ticket',
+        program: 'handoff-agent',
+        task: 'Open one support ticket about order {orderId} for customer {customer}, summarizing the findings below for a person.',
+        grants: [{ rights: ['ticket.create'], resource: 'queue:support', uses: 1 }],
+        after: ['investigate'],
+        budget: { steps: 3, tokens: 9000 },
+      },
+      reply(['investigate', 'ticket']),
+    ],
+  },
+  {
+    id: 'status',
+    title: 'Answer a question',
+    summary:
+      'Read-only from start to finish: an investigator gathers facts and a writer answers. No step holds any authority to change something.',
+    answer: 'reply',
+    steps: [
+      {
+        id: 'investigate',
+        title: 'Investigate',
+        program: 'investigator',
+        task: 'Customer {customer} asked: "{message}". Read order {orderId} and the policies, and report the facts that answer it.',
+        grants: [read('order:{orderId}'), policies],
+        budget: investigate,
+      },
+      reply(['investigate']),
+    ],
+  },
+];
 
 export interface LiveOptions {
   model: () => AgentModel | undefined;
@@ -387,6 +501,10 @@ export function bootLive(options: LiveOptions) {
     programs: [
       agentProgram({ name: 'concierge-ai', role: liveRoles.concierge, ...options }),
       agentProgram({ name: 'refund-agent', role: liveRoles.refund, ...options }),
+      agentProgram({ name: 'investigator', role: liveRoles.investigator, ...options }),
+      agentProgram({ name: 'handoff-agent', role: liveRoles.handoff, ...options }),
+      agentProgram({ name: 'writer', role: liveRoles.writer, ...options }),
+      workflowRunner,
     ],
   });
   grantCustomers(kernel, world);
@@ -417,4 +535,22 @@ export function startConversation(
       ],
     },
   );
+}
+
+/** Runs a workflow on a customer's own order. */
+export function runWorkflow(
+  kernel: RelayKernel<SupportWorld>,
+  workflowId: string,
+  customer: string,
+  message: string,
+) {
+  const workflow = supportWorkflows.find((w) => w.id === workflowId);
+  if (!workflow) throw new Error(`Unknown workflow ${workflowId}.`);
+  const order = kernel.world.orders.find((o) => o.customer === customer);
+  if (!order) throw new Error(`Unknown customer ${customer}.`);
+  return startWorkflow(kernel, workflow, customer, {
+    customer,
+    orderId: order.id,
+    message: message.slice(0, 600),
+  });
 }
