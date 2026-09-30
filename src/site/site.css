@@ -2570,3 +2570,344 @@ body {
     font-size: 12px;
   }
 }
+
+/* The refund decision is the hero; the original hardware becomes its supporting motif. */
+.proof-hero {
+  padding: 42px 38px 24px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  column-gap: 35px;
+}
+.proof-kicker {
+  font-size: 12px;
+  margin-bottom: 18px !important;
+}
+.proof-copy h1 {
+  font: 400 clamp(44px, 5.8vw, 86px)/1.08 var(--display);
+  letter-spacing: -0.025em;
+}
+.proof-lead {
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.85;
+  margin: 22px 0 !important;
+}
+.proof-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 11px;
+}
+.proof-links a {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.proof-note {
+  font-size: 10px;
+  line-height: 1.75;
+  max-width: 65ch;
+  margin: 18px 0 0 !important;
+}
+.proof-device {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.proof-device img {
+  width: 100%;
+  max-width: 390px;
+  height: auto;
+  filter: drop-shadow(12px 20px 8px #20241c30);
+  transform: rotate(-10deg);
+}
+.proof-device > span {
+  font-size: 11px;
+}
+.proof-outcomes {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 32px;
+  border: 1px solid var(--ink);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.proof-outcomes button {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 18px;
+  padding: 22px 18px;
+  border: 0;
+  background: #cbd1bb;
+  min-height: 112px;
+}
+.proof-outcomes button + button {
+  border-left: 1px solid var(--ink);
+}
+.proof-outcomes button:hover {
+  background: #dbe0ce;
+}
+.proof-outcomes button:focus-visible {
+  outline-offset: -5px;
+}
+.proof-amount {
+  font: 400 42px/1 var(--display);
+}
+.proof-outcomes strong {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.proof-outcomes small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.7;
+  margin-top: 5px;
+}
+.proof-outcomes svg {
+  margin-left: auto;
+}
+.proof-foot {
+  grid-column: 1/-1;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  font-size: 10px;
+  margin-top: 13px;
+}
+.proof-foot button {
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+}
+.evidence-section,
+.field-section {
+  padding: 65px 38px;
+  border-top: 1px solid var(--line);
+  background: #d5dac8;
+}
+.evidence-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 30px;
+}
+.evidence-heading p {
+  font-size: 12px;
+  margin-bottom: 16px !important;
+}
+.evidence-heading h2 {
+  font: 400 clamp(38px, 4.5vw, 68px)/1.1 var(--display);
+}
+.evidence-heading a,
+.evidence-links a,
+.integration-notes a {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  line-height: 1.8;
+}
+.evidence-description {
+  margin: 25px 0 !important;
+  max-width: 90ch;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.evidence-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 25px 0;
+  gap: 25px;
+}
+.evidence-metrics dt {
+  font-size: 11px;
+}
+.evidence-metrics dd {
+  margin: 16px 0 0;
+  font: 400 42px/1.2 var(--display);
+}
+.evidence-metrics small {
+  display: block;
+  font: 400 11px/1.7 var(--mono);
+  margin-top: 6px;
+}
+.evidence-caveat {
+  font-size: 11px;
+  line-height: 1.9;
+  max-width: 110ch;
+}
+.evidence-details {
+  margin-top: 25px;
+  font-size: 12px;
+}
+.evidence-details summary {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  padding: 10px 0;
+}
+.evidence-table-wrap {
+  overflow-x: auto;
+}
+.evidence-details table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  text-align: left;
+  font-size: 11px;
+}
+.evidence-details caption {
+  text-align: left;
+  margin-bottom: 10px;
+}
+.evidence-details th,
+.evidence-details td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.evidence-details th {
+  font-weight: 400;
+}
+.evidence-links {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  margin: 25px 0;
+}
+.model-boundary {
+  max-width: 100ch;
+  font-size: 13px;
+  line-height: 1.9;
+  padding: 22px;
+  border-left: 3px solid #7e3014;
+  background: #c3ccb1;
+}
+.field-section {
+  background: var(--paper);
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 30px;
+  margin-top: 40px;
+}
+.field-grid h3,
+.integration-notes h3 {
+  font-size: 14px;
+  margin-bottom: 13px;
+}
+.field-grid p,
+.integration-notes p {
+  font-size: 12px;
+  line-height: 1.9;
+}
+.integration-notes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+  border-top: 1px solid var(--line);
+  margin-top: 35px;
+  padding-top: 30px;
+}
+.integration-notes a {
+  margin-top: 15px;
+}
+@media (max-width: 1050px) {
+  .proof-outcomes button {
+    gap: 12px;
+    padding: 18px 12px;
+  }
+  .proof-outcomes svg {
+    display: none;
+  }
+  .proof-amount {
+    font-size: 35px;
+  }
+  .field-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .proof-hero {
+    padding: 28px 20px 24px;
+    grid-template-columns: 1fr;
+  }
+  .proof-copy h1 {
+    font-size: clamp(48px, 10vw, 70px);
+  }
+  .proof-device {
+    display: none;
+  }
+  .proof-lead {
+    font-size: 13px;
+  }
+  .proof-outcomes {
+    grid-template-columns: 1fr;
+    margin-top: 25px;
+  }
+  .proof-outcomes button {
+    min-height: 88px;
+    padding: 15px 18px;
+    gap: 20px;
+  }
+  .proof-outcomes button + button {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .proof-amount {
+    min-width: 80px;
+    font-size: 37px;
+  }
+  .proof-outcomes svg {
+    display: block;
+  }
+  .proof-foot {
+    font-size: 8px;
+    align-items: start;
+  }
+  .proof-foot button {
+    white-space: nowrap;
+  }
+  .evidence-section,
+  .field-section {
+    padding: 40px 20px;
+  }
+  .evidence-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .evidence-metrics {
+    grid-template-columns: 1fr 1fr;
+    gap: 30px 15px;
+  }
+  .field-grid,
+  .integration-notes {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+  .evidence-metrics dd {
+    font-size: 36px;
+  }
+  .evidence-details table {
+    font-size: 10px;
+  }
+  .proof-links {
+    gap: 18px;
+  }
+}

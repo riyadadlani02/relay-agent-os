@@ -50,7 +50,7 @@ The UI does not expose chain-of-thought. The visible evidence is actions and res
 - Delivered within 30 days, not already resolved: up to $100 automatic, $100–$500 operator approval, above $500 denied.
 - Replacements always require approval. Approval is bound to the stored action ID and eligibility is rechecked inside the committing transaction.
 - Concurrent transactions serialize against the latest order state. The first resolution wins; replay cannot generate a second refund or replacement.
-- A turn has at most eight model calls; individual generation has a 90-second timeout and 380 output-token budget. Stop discards a late model response, while preserving any previously committed receipt.
+- A turn has at most eight model calls; browser generation has a 90-second timeout and 380 output-token budget; hosted generation has a 60-second timeout and 700 output-token budget. Stop discards a late model response, while preserving any previously committed receipt.
 
 Model-generated information answers can still be inaccurate. Each is accompanied by an explicit notice that no order changes occurred. Transaction results are always runtime receipts, never generated success prose. Prompt injection tests prove the tested code boundaries, not universal model robustness. The small model may choose a poor tool, fail structured generation, or reach its step budget; the UI shows the failure and does not fabricate success.
 
@@ -83,3 +83,9 @@ The public deployment intentionally depends on WebGPU rather than a billed cloud
 All data is local to a browser origin. There is no authenticated operator identity, multi-user service, cross-device continuity, or protected audit log. A visitor can modify their own browser data. This is a working portfolio prototype, not a production trust boundary against its own operator.
 
 Sources: [WebLLM basic usage](https://webllm.mlc.ai/docs/user/basic_usage.html), [worker inference](https://webllm.mlc.ai/docs/user/advanced_usage.html), [official model registry](https://github.com/mlc-ai/web-llm/blob/main/src/config.ts).
+
+## Measured hosted runs and voice
+
+The September 30 hosted evaluation exercised 240 requests through this kernel, including Hindi/Hinglish and policy-bypass attempts. Results and limitations are in [the evaluation report](evaluation.md). These numbers do not measure the browser Qwen model.
+
+The voice panel accepts microphone dictation in supported browsers and offers local Deepgram file transcription when configured. A speaker finishes and reviews the full transcript before sending it; no audio hypothesis executes a tool. See the [synthetic Hindi audio-to-action evidence](voice.md). The Razorpay workflow is a separate local server route with INR records and its own terminal-action approvals; the browser ledger remains fictional.

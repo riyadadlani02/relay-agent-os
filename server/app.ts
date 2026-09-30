@@ -5,6 +5,9 @@ import { resolve } from 'node:path';
 import type { Runtime } from './runtime.js';
 import { RuntimeError, inputSchema, policySchema } from './runtime.js';
 import { mountLiveModel } from './live.js';
+import { mountVoice } from './voice.js';
+import { mountPayments } from './connectors/routes.js';
+import type { Store } from './store.js';
 
 export function createApp(runtime: Runtime) {
   const app = express();
@@ -33,6 +36,8 @@ export function createApp(runtime: Runtime) {
   });
   app.use(express.json({ limit: '16kb' }));
   mountLiveModel(app);
+  mountVoice(app);
+  if ('db' in runtime.store) mountPayments(app, runtime.store as Store);
   app.get('/api/health', (_req, res) =>
     res.json({ status: 'ok', mode: 'sandbox', provider: runtime.planner.name }),
   );

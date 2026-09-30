@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-09-30T11:07:22.462Z",
+  "scope": "Actual Razorpay test-mode order creation. Checkout frame did not load; captured payment and refund are not verified.",
+  "testMode": true,
+  "bindings": [
+    {
+      "id": "R-2000",
+      "providerOrderId": "order_TiDzvA6zIsr54G",
+      "amount": 4900,
+      "currency": "INR"
+    }
+  ],
+  "intents": [],
+  "audit": [
+    {
+      "at": "2026-09-30T11:02:52.678Z",
+      "kind": "order.created",
+      "data": {
+        "id": "R-2000",
+        "providerOrderId": "order_TiDzvA6zIsr54G",
+        "amount": 4900,
+        "currency": "INR"
+      }
+    }
+  ]
+}

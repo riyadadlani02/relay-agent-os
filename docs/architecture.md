@@ -1,6 +1,6 @@
 # Architecture and engineering decisions
 
-This document covers the original six-step server workspace. The public conversational agent has a separate [live inference and tool-loop architecture](live-playground.md).
+This document covers the original six-step server workspace. The separate [Razorpay test connector](payments.md) uses persisted external refund intents and provider reconciliation; its verification status is documented explicitly. The public conversational agent has a separate [live inference and tool-loop architecture](live-playground.md).
 
 Relay is intentionally a narrow vertical slice: one operator, customer operations, three allowed actions, one database, and one worker process. The point is to make the authorization and durability boundaries easy to inspect.
 

@@ -1,0 +1,339 @@
+{
+  "generatedAt": "2026-09-30T11:05:27.614Z",
+  "audio": "hindi-request.mp3",
+  "syntheticSpeech": true,
+  "speech": {
+    "generatedAt": "2026-09-30T11:03:53.360Z",
+    "synthetic": true,
+    "transcript": "नमस्ते. मेरा order R1042 वापस करना है. कृपया पूरा refund कर दीजिए.",
+    "confidence": 0.99902344,
+    "words": [
+      {
+        "word": "नमस्ते",
+        "start": 0,
+        "end": 1.1999999,
+        "confidence": 0.9090576,
+        "punctuated_word": "नमस्ते.",
+        "language": "hi"
+      },
+      {
+        "word": "मेरा",
+        "start": 1.1999999,
+        "end": 1.68,
+        "confidence": 0.9980469,
+        "punctuated_word": "मेरा",
+        "language": "hi"
+      },
+      {
+        "word": "order",
+        "start": 1.68,
+        "end": 2.32,
+        "confidence": 0.99902344,
+        "punctuated_word": "order",
+        "language": "hi"
+      },
+      {
+        "word": "r1042",
+        "start": 2.32,
+        "end": 4.64,
+        "confidence": 0.9563802,
+        "punctuated_word": "R1042",
+        "language": "hi"
+      },
+      {
+        "word": "वापस",
+        "start": 4.64,
+        "end": 5.2,
+        "confidence": 0.9996745,
+        "punctuated_word": "वापस",
+        "language": "hi"
+      },
+      {
+        "word": "करना",
+        "start": 5.2,
+        "end": 5.52,
+        "confidence": 1,
+        "punctuated_word": "करना",
+        "language": "hi"
+      },
+      {
+        "word": "है",
+        "start": 5.52,
+        "end": 6.08,
+        "confidence": 0.99658203,
+        "punctuated_word": "है.",
+        "language": "hi"
+      },
+      {
+        "word": "कृपया",
+        "start": 6.08,
+        "end": 6.64,
+        "confidence": 0.99975586,
+        "punctuated_word": "कृपया",
+        "language": "hi"
+      },
+      {
+        "word": "पूरा",
+        "start": 6.64,
+        "end": 7.12,
+        "confidence": 1,
+        "punctuated_word": "पूरा",
+        "language": "hi"
+      },
+      {
+        "word": "refund",
+        "start": 7.12,
+        "end": 7.44,
+        "confidence": 0.9970703,
+        "punctuated_word": "refund",
+        "language": "hi"
+      },
+      {
+        "word": "कर",
+        "start": 7.44,
+        "end": 7.6,
+        "confidence": 1,
+        "punctuated_word": "कर",
+        "language": "hi"
+      },
+      {
+        "word": "दीजिए",
+        "start": 7.6,
+        "end": 8,
+        "confidence": 0.9978841,
+        "punctuated_word": "दीजिए.",
+        "language": "hi"
+      }
+    ],
+    "seconds": 8.015938,
+    "requestId": "01a0f1fc-33f9-7541-b8fd-4a783bc7205b",
+    "milliseconds": 1786,
+    "provider": "Deepgram Nova-3 multilingual"
+  },
+  "review": {
+    "original": "नमस्ते. मेरा order R1042 वापस करना है. कृपया पूरा refund कर दीजिए.",
+    "reviewed": "नमस्ते. मेरा order R-1042 वापस करना है. कृपया पूरा refund कर दीजिए.",
+    "edit": "Operator normalized R1042 to the exact record ID R-1042. No amount or intent was inferred from audio.",
+    "automaticallySubmitted": false
+  },
+  "model": "gpt-4.1-mini",
+  "usage": {
+    "input": 2320,
+    "output": 64,
+    "calls": 3
+  },
+  "session": {
+    "id": "ff9b2d6e-23f1-4e14-a8c0-413012237659",
+    "createdAt": "2026-09-30T11:05:24.784Z",
+    "messages": [
+      {
+        "id": "21686ecb-e22a-44ca-aabc-6763ae633347",
+        "role": "user",
+        "text": "नमस्ते. मेरा order R-1042 वापस करना है. कृपया पूरा refund कर दीजिए."
+      },
+      {
+        "id": "4ac54d6f-ab41-468f-bdbb-6183e1a7bc6a",
+        "role": "system",
+        "text": "Verified: $49.00 refund recorded for R-1042. Receipt 8fbb3758. Your demo order record has been updated; no real payment was made."
+      }
+    ],
+    "traces": [
+      {
+        "id": "17a8286f-cbc0-4414-8455-7b176345c001",
+        "at": "2026-09-30T11:05:25.775Z",
+        "kind": "model",
+        "name": "gpt-4.1-mini",
+        "input": {
+          "turn": 1,
+          "availableTools": ["orders.lookup", "knowledge.search", "handoff.create", "respond"]
+        },
+        "output": {
+          "selectedTool": "orders.lookup",
+          "tokens": 659
+        },
+        "milliseconds": 987
+      },
+      {
+        "id": "9b9cb61c-f360-4d48-9912-19f7e037d38f",
+        "at": "2026-09-30T11:05:25.789Z",
+        "kind": "tool",
+        "name": "orders.lookup",
+        "input": {
+          "orderId": "R-1042",
+          "query": ""
+        },
+        "output": {
+          "orders": [
+            {
+              "id": "R-1042",
+              "product": "Studio cable",
+              "amountCents": 4900,
+              "ageDays": 4,
+              "status": "delivered",
+              "refunded": false,
+              "replacement": false,
+              "amount": "$49.00"
+            }
+          ]
+        },
+        "milliseconds": 13.705
+      },
+      {
+        "id": "fec8acd4-3e3d-4338-b8df-687af53e43f9",
+        "at": "2026-09-30T11:05:26.747Z",
+        "kind": "model",
+        "name": "gpt-4.1-mini",
+        "input": {
+          "turn": 2,
+          "availableTools": ["knowledge.search", "handoff.create", "respond"]
+        },
+        "output": {
+          "selectedTool": "knowledge.search",
+          "tokens": 763
+        },
+        "milliseconds": 958
+      },
+      {
+        "id": "bc468961-9859-40d1-94ce-7707e17c1720",
+        "at": "2026-09-30T11:05:26.748Z",
+        "kind": "tool",
+        "name": "knowledge.search",
+        "input": {
+          "orderId": "R-1042",
+          "query": "refund policy"
+        },
+        "output": {
+          "sources": [
+            {
+              "id": "REF-01",
+              "title": "Refunds",
+              "text": "Full refunds are available for delivered orders within 30 days. Up to $100 can be processed automatically. Above $100 through $500 requires operator approval. Above $500 is blocked. Already-refunded orders cannot be refunded again. Amounts always come from the order record.",
+              "score": 1
+            },
+            {
+              "id": "SHP-02",
+              "title": "Replacements",
+              "text": "Damaged delivered orders within 30 days may receive one replacement after operator approval. Refunded orders and orders already replaced are ineligible. No replacement can be shipped by this demo; it records a fulfillment request.",
+              "score": 1
+            }
+          ]
+        },
+        "milliseconds": 0.387
+      },
+      {
+        "id": "1435142a-a9a8-40e9-bed0-a570df30751b",
+        "at": "2026-09-30T11:05:27.613Z",
+        "kind": "model",
+        "name": "gpt-4.1-mini",
+        "input": {
+          "turn": 3,
+          "availableTools": ["refunds.request", "replacements.request", "handoff.create", "respond"]
+        },
+        "output": {
+          "selectedTool": "refunds.request",
+          "tokens": 962
+        },
+        "milliseconds": 864
+      },
+      {
+        "id": "23708266-2c0d-4f30-a57c-e43d19a155ff",
+        "at": "2026-09-30T11:05:27.614Z",
+        "kind": "policy",
+        "name": "policy.evaluate",
+        "input": {
+          "tool": "refunds.request",
+          "orderId": "R-1042"
+        },
+        "output": {
+          "decision": "allow",
+          "explanation": "Refund is eligible for automatic processing.",
+          "amountCents": 4900,
+          "policy": "REF-01",
+          "receipt": {
+            "id": "8fbb3758-555b-4dd6-b33f-0407789855f6",
+            "orderId": "R-1042",
+            "kind": "refund",
+            "amountCents": 4900,
+            "at": "2026-09-30T11:05:27.613Z"
+          },
+          "scope": "Demo database only; no real payment."
+        },
+        "milliseconds": 0.182
+      },
+      {
+        "id": "1706f2ca-91e0-440e-96ed-658f685e547a",
+        "at": "2026-09-30T11:05:27.614Z",
+        "kind": "tool",
+        "name": "refunds.request",
+        "input": {
+          "orderId": "R-1042",
+          "query": ""
+        },
+        "output": {
+          "decision": "allow",
+          "explanation": "Refund is eligible for automatic processing.",
+          "amountCents": 4900,
+          "policy": "REF-01",
+          "receipt": {
+            "id": "8fbb3758-555b-4dd6-b33f-0407789855f6",
+            "orderId": "R-1042",
+            "kind": "refund",
+            "amountCents": 4900,
+            "at": "2026-09-30T11:05:27.613Z"
+          },
+          "scope": "Demo database only; no real payment."
+        },
+        "milliseconds": 1.119
+      }
+    ],
+    "receipts": [
+      {
+        "id": "8fbb3758-555b-4dd6-b33f-0407789855f6",
+        "orderId": "R-1042",
+        "kind": "refund",
+        "amountCents": 4900,
+        "at": "2026-09-30T11:05:27.613Z"
+      }
+    ],
+    "tokens": 2384,
+    "orders": [
+      {
+        "id": "R-1042",
+        "product": "Studio cable",
+        "amountCents": 4900,
+        "ageDays": 4,
+        "status": "delivered",
+        "refunded": true,
+        "replacement": false
+      },
+      {
+        "id": "R-1043",
+        "product": "Field headphones",
+        "amountCents": 24900,
+        "ageDays": 12,
+        "status": "delivered",
+        "refunded": false,
+        "replacement": false
+      },
+      {
+        "id": "R-1044",
+        "product": "Reference amplifier",
+        "amountCents": 75000,
+        "ageDays": 8,
+        "status": "delivered",
+        "refunded": false,
+        "replacement": false
+      },
+      {
+        "id": "R-1045",
+        "product": "Travel speaker",
+        "amountCents": 8900,
+        "ageDays": 46,
+        "status": "delivered",
+        "refunded": false,
+        "replacement": false
+      }
+    ],
+    "model": "gpt-4.1-mini"
+  }
+}

@@ -269,7 +269,10 @@ export class AgentKernel {
           orders.forEach((o) => lookedUp.add(o.id));
           output = orders.length
             ? { orders: orders.map((order) => ({ ...order, amount: dollars(order.amountCents) })) }
-            : { error: 'Order not found. Ask for a valid order ID.' };
+            : {
+                error: 'Order not found. Ask for a valid order ID.',
+                requestedOrderId: action.orderId,
+              };
           evidence.push(output);
         } else if (action.tool === 'knowledge.search') {
           searched = true;
@@ -307,13 +310,16 @@ export class AgentKernel {
           };
         } else {
           let pending = false;
+          let policyMs = 0;
           await this.update((s) => {
             this.abort?.signal.throwIfAborted();
             if (s.pending)
               throw new Error(
                 'Another action is awaiting approval in this session. Resolve it first.',
               );
+            const policyStart = performance.now();
             const check = checkAction(action, s);
+            policyMs = Number((performance.now() - policyStart).toFixed(3));
             if (check.decision === 'deny') {
               output = { ...check, executed: false };
               s.messages.push({
@@ -354,8 +360,18 @@ export class AgentKernel {
             'policy.evaluate',
             { tool: action.tool, orderId: action.orderId },
             output,
+            policyMs,
           );
-          if (pending) return;
+          if (pending) {
+            await this.trace(
+              'tool',
+              action.tool,
+              { orderId: action.orderId, query: action.query },
+              output,
+              Number((performance.now() - started).toFixed(3)),
+            );
+            return;
+          }
           actionFinished = true;
         }
         await this.trace(
@@ -363,7 +379,7 @@ export class AgentKernel {
           action.tool,
           { orderId: action.orderId, query: action.query },
           output,
-          Math.round(performance.now() - started),
+          Number((performance.now() - started).toFixed(3)),
         );
         // Transaction outcomes come from persisted state, never a model's success claim.
         if (actionFinished) return;

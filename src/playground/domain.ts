@@ -203,6 +203,15 @@ export function checkAction(
     policy,
   });
   if (!order) return deny('Order does not exist in this session.');
+  if (!['refunds.request', 'replacements.request'].includes(action.tool))
+    return deny('This tool cannot mutate an order.');
+  if (
+    !Number.isSafeInteger(order.amountCents) ||
+    order.amountCents <= 0 ||
+    !Number.isFinite(order.ageDays) ||
+    order.ageDays < 0
+  )
+    return deny('The order record is invalid; operator review is required.');
   if (order.refunded || order.replacement)
     return deny('This order already has a resolution. A second action is blocked.');
   if (order.ageDays > 30 || order.status !== 'delivered')

@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import {
-  ArrowDown,
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
@@ -21,6 +20,7 @@ import '@fontsource/anton/latin-400.css';
 import '@fontsource/space-mono/latin-400.css';
 import '@fontsource/space-mono/latin-700.css';
 import './site.css';
+import Evidence from './Evidence';
 
 const repo = 'https://github.com/riyadadlani02/relay-agent-os';
 const scenarios: { title: string; code: string; detail: string; input: RunInput }[] = [
@@ -124,6 +124,24 @@ function Mark() {
 }
 
 export default function Site() {
+  useEffect(() => {
+    // The lazy entry renders after the browser's initial fragment lookup.
+    const hash = location.hash;
+    let active = true;
+    void document.fonts.ready.then(() => {
+      if (!active || !hash || location.hash !== hash) return;
+      try {
+        document
+          .getElementById(decodeURIComponent(hash.slice(1)))
+          ?.scrollIntoView({ behavior: 'instant' });
+      } catch {
+        /* Ignore malformed fragments. */
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const [{ runtime, store }] = useState(createBrowserRuntime);
   const [snapshot, setSnapshot] = useState(() => ({
     runs: store.runs(),
@@ -137,7 +155,6 @@ export default function Site() {
   const [motion, setMotion] = useState(true);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
-  const art = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const refresh = () =>
       setSnapshot({
@@ -233,15 +250,9 @@ export default function Site() {
           </small>
         </a>
         <nav aria-label="Site navigation">
-          <a href="#system">
-            THE SYSTEM <span>01</span>
-          </a>
-          <a href={`${import.meta.env.BASE_URL}?playground=1`}>
-            PLAYGROUND <span>02</span>
-          </a>
-          <a href="#film">
-            WATCH FILM <span>03</span>
-          </a>
+          <a href="#evidence">EVIDENCE</a>
+          <a href={`${import.meta.env.BASE_URL}?playground=1`}>PLAYGROUND</a>
+          <a href="#film">WATCH FILM</a>
           <a href={repo} target="_blank" rel="noreferrer">
             GITHUB <ArrowUpRight size={14} />
           </a>
@@ -252,252 +263,72 @@ export default function Site() {
         </button>
       </header>
       <main className="site-main">
-        <section
-          className="hardware-hero"
-          aria-labelledby="hero-title"
-          onPointerMove={(e) => {
-            if (!motion || e.pointerType === 'touch') return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            art.current?.style.setProperty(
-              '--pointer-x',
-              `${(e.clientX - rect.left - rect.width / 2) / 55}px`,
-            );
-            art.current?.style.setProperty(
-              '--pointer-y',
-              `${(e.clientY - rect.top - rect.height / 2) / 70}px`,
-            );
-          }}
-          onPointerLeave={() => {
-            art.current?.style.setProperty('--pointer-x', '0px');
-            art.current?.style.setProperty('--pointer-y', '0px');
-          }}
-        >
-          <div className="hero-topline">
-            <span>
-              AGENT OPERATING SYSTEM
+        <section className="proof-hero" aria-labelledby="hero-title">
+          <div className="proof-copy">
+            <p className="proof-kicker">Customer operations, with a permission boundary.</p>
+            <h1 id="hero-title">
+              Agents act.
               <br />
-              R—OS / SERIES 001
-            </span>
-            <div className="signal-rule">
-              <i />
-              <i />
-              <i />
+              You set the limits.
+            </h1>
+            <p className="proof-lead">
+              Relay turns customer requests into refunds and replacements, with policy checks, human
+              approval, and a receipt for every action.
+            </p>
+            <div className="proof-links">
+              <button className="header-boot" onClick={boot}>
+                Open live playground <ArrowUpRight size={17} />
+              </button>
+              <a href="#evidence">
+                Read the measured results <ArrowDownRight size={17} />
+              </a>
             </div>
-            <span className="hero-top-center">INDEPENDENT MINDS. SHARED PURPOSE.</span>
-            <div className="signal-rule reversed">
-              <i />
-              <i />
-              <i />
-            </div>
-            <span className="hero-availability">
-              <span className="rec-dot" />
-              AVAILABLE FOR EXPLORATION
-            </span>
+            <p className="proof-note">
+              Try the three outcomes below instantly. The live AI playground downloads a browser
+              model on first use. Sample business data; no real money.
+            </p>
           </div>
-          <div className="hero-cross left">
-            <Star />
-            <Star />
-            <Star />
-          </div>
-          <div className="hero-cross right">
-            <Star />
-            <Star />
-            <Star />
-          </div>
-          <div className="hero-caption">
-            <span>
-              Intelligence,
-              <br />
-              in your hands.
-            </span>
-            <span>
-              DESIGNED FOR AUTONOMY.
-              <br />
-              ENGINEERED FOR CONTROL.
-            </span>
-          </div>
-          <h1 id="hero-title" className="hero-title">
-            AGENTS, UNLEASHED.
-          </h1>
-          <div className="hero-art" ref={art}>
-            <div className="device-halo" />
+          <div className="proof-device">
             <img
               src={`${import.meta.env.BASE_URL}images/agent-core.png`}
-              alt="Transparent olive Relay agent core with twin silver reels, a status display, and an orange control switch"
+              alt="Relay’s olive cassette-inspired agent core with twin silver reels"
               width="1254"
               height="1254"
               fetchPriority="high"
             />
-            <span className="device-ground" />
+            <span>A proposal is never permission.</span>
           </div>
-          <div className="hero-spec left-spec">
-            <span className="crosshair">+</span>
-            <span>
-              06 SPECIALIST SERVICES
-              <br />
-              01 CONNECTED SYSTEM
-            </span>
-            <i />
-          </div>
-          <div className="hero-spec right-spec">
-            <i />
-            <span>
-              FULL OBSERVABILITY
-              <br />
-              HUMAN OVERRIDE: ON
-            </span>
-            <span className="crosshair">+</span>
-          </div>
-          <div className="hero-bottom">
-            <div className="serial">
-              <span className="serial-box">R1</span>
-              <span>
-                INTELLIGENCE WITHOUT THE BLACK BOX.
-                <br />
-                PERSIST. ORCHESTRATE. OBSERVE.
-              </span>
-            </div>
-            <button className="boot-key" onClick={boot}>
-              <span>PRESS TO EXPLORE</span>
-              <Play size={16} fill="currentColor" />
-              <span>BOOT RELAY OS</span>
-            </button>
-            <div className="hero-controls">
-              <button onClick={() => setMotion(!motion)} aria-pressed={motion}>
-                {motion ? <Pause size={12} /> : <Play size={12} />}MOTION {motion ? 'ON' : 'OFF'}
-              </button>
-              <span>
-                SCROLL TO CONNECT <ArrowDown size={12} />
-              </span>
-            </div>
-          </div>
-        </section>
-        <div className="frequency-strip" aria-hidden="true">
-          <span>BUILT FOR AGENTS</span>
-          <Star />
-          <span>WIRED FOR TRUST</span>
-          <Star />
-          <span>MADE TO MOVE WORK</span>
-          <Star />
-          <span>ALWAYS IN YOUR HANDS</span>
-          <Star />
-        </div>
-
-        <section id="film" className="film-section" aria-labelledby="film-title">
-          <div className="section-index">
-            <span>[ PLAY / THE PRODUCT FILM ]</span>
-            <span>01:15 · SOUND ON</span>
-          </div>
-          <div className="film-intro">
-            <h2 id="film-title">SEE IT IN MOTION.</h2>
-            <p>
-              A request. An action. Your control. Watch Relay work through real model inference,
-              human approval, and a hard policy boundary.
-            </p>
-          </div>
-          <video
-            controls
-            playsInline
-            preload="none"
-            poster={`${import.meta.env.BASE_URL}media/relay-demo-poster.jpg`}
-            aria-label="Relay OS product demo with English narration and open captions"
-          >
-            <source
-              src={`${import.meta.env.BASE_URL}media/relay-demo.webm`}
-              type='video/webm; codecs="vp9, opus"'
-            />
-            <source src={`${import.meta.env.BASE_URL}media/relay-demo.mp4`} type="video/mp4" />
-            <track
-              kind="captions"
-              src={`${import.meta.env.BASE_URL}media/relay-demo.vtt`}
-              srcLang="en"
-              label="English"
-            />
-            <a href={`${import.meta.env.BASE_URL}media/relay-demo.mp4`}>Download the demo film</a>
-          </video>
-          <div className="film-meta">
-            <span>REAL PLAYGROUND CAPTURES · EDITED FOR CLARITY · FICTIONAL BUSINESS DATA</span>
-            <div>
-              <a href={`${import.meta.env.BASE_URL}media/relay-demo-transcript.txt`}>
-                Read transcript <ArrowUpRight size={14} />
-              </a>
-              <a href={`${import.meta.env.BASE_URL}media/relay-demo.mp4`} download>
-                Download film <Download size={14} />
-              </a>
-            </div>
-          </div>
-        </section>
-
-        <section id="system" className="system-section">
-          <div className="section-index">
-            <span>[ 01 — THE OPERATING LAYER ]</span>
-            <span>NO MYSTERY. JUST MACHINERY.</span>
-          </div>
-          <div className="system-intro">
-            <h2>
-              BIG IDEAS.
-              <br />
-              CONNECTED MINDS.
-            </h2>
-            <div>
-              <Star className="intro-star" />
-              <p>Give your agents a world to work in.</p>
-              <p>
-                Relay turns a customer request into a coordinated mission. Six focused services.
-                Clear boundaries. And a human hand on the controls whenever it matters.
-              </p>
-              <a href="#console">
-                TAKE IT FOR A SPIN <ArrowDownRight size={20} />
-              </a>
-            </div>
-          </div>
-          <div className="agent-rack">
-            {stages.map((stage, index) => (
+          <div className="proof-outcomes" aria-label="Try a refund outcome">
+            {[
+              ['$49', 'Completes automatically', 'Eligible refund, verified receipt.'],
+              ['$249', 'Waits for your approval', 'Nothing commits until you approve.'],
+              ['$750', 'Blocked by policy', 'Even a human cannot override the limit.'],
+            ].map(([amount, title, detail], index) => (
               <button
-                className={`agent-module ${index === agent ? 'engaged' : ''}`}
-                key={stage.name}
-                onClick={() => setAgent(index)}
-                aria-pressed={index === agent}
+                key={amount}
+                onClick={() => {
+                  setScenario(index);
+                  launch(index);
+                  document.getElementById('console')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                aria-label={`Run ${amount} refund demo`}
               >
-                <span className="module-number">
-                  0{index + 1}
-                  <Plus size={13} />
+                <span className="proof-amount">{amount}</span>
+                <span>
+                  <strong>{title}</strong>
+                  <small>{detail}</small>
                 </span>
-                <span className="module-symbol" aria-hidden="true">
-                  {index === 0
-                    ? '↙'
-                    : index === 1
-                      ? '≋'
-                      : index === 2
-                        ? '✳'
-                        : index === 3
-                          ? '⌾'
-                          : index === 4
-                            ? '↯'
-                            : '✓'}
-                </span>
-                <strong>{stage.name.toUpperCase()}</strong>
-                <span className="module-type">{stage.agent.toUpperCase()} SERVICE</span>
-                <span className="module-connector">
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </span>
+                <Play size={20} />
               </button>
             ))}
           </div>
-          <div className="agent-description" aria-live="polite">
-            <span>
-              CHANNEL 0{agent + 1} <span className="tiny-led" />
-            </span>
-            <h3>{agentDetails[agent][0]}</h3>
-            <p>{agentDetails[agent][1]}</p>
-            <code>{stages[agent].tool}</code>
+          <div className="proof-foot">
+            <span>Three deterministic walkthroughs · no model download</span>
+            <button onClick={() => setMotion(!motion)} aria-pressed={motion}>
+              {motion ? <Pause size={12} /> : <Play size={12} />} Motion {motion ? 'on' : 'off'}
+            </button>
           </div>
         </section>
-
         <section id="console" className="console-section" aria-labelledby="console-title">
           <div className="section-index">
             <span>[ 02 — HANDS ON THE CONTROLS ]</span>
@@ -769,6 +600,122 @@ export default function Site() {
                 </select>
               </label>
             )}
+          </div>
+        </section>
+
+        <Evidence />
+        <section id="film" className="film-section" aria-labelledby="film-title">
+          <div className="section-index">
+            <span>[ PLAY / THE PRODUCT FILM ]</span>
+            <span>01:15 · SOUND ON</span>
+          </div>
+          <div className="film-intro">
+            <h2 id="film-title">SEE IT IN MOTION.</h2>
+            <p>
+              A request. An action. Your control. Watch Relay work through real model inference,
+              human approval, and a hard policy boundary.
+            </p>
+          </div>
+          <video
+            controls
+            playsInline
+            preload="none"
+            poster={`${import.meta.env.BASE_URL}media/relay-demo-poster.jpg`}
+            aria-label="Relay OS product demo with English narration and open captions"
+          >
+            <source
+              src={`${import.meta.env.BASE_URL}media/relay-demo.webm`}
+              type='video/webm; codecs="vp9, opus"'
+            />
+            <source src={`${import.meta.env.BASE_URL}media/relay-demo.mp4`} type="video/mp4" />
+            <track
+              kind="captions"
+              src={`${import.meta.env.BASE_URL}media/relay-demo.vtt`}
+              srcLang="en"
+              label="English"
+            />
+            <a href={`${import.meta.env.BASE_URL}media/relay-demo.mp4`}>Download the demo film</a>
+          </video>
+          <div className="film-meta">
+            <span>REAL PLAYGROUND CAPTURES · EDITED FOR CLARITY · FICTIONAL BUSINESS DATA</span>
+            <div>
+              <a href={`${import.meta.env.BASE_URL}media/relay-demo-transcript.txt`}>
+                Read transcript <ArrowUpRight size={14} />
+              </a>
+              <a href={`${import.meta.env.BASE_URL}media/relay-demo.mp4`} download>
+                Download film <Download size={14} />
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section id="system" className="system-section">
+          <div className="section-index">
+            <span>[ 01 — THE OPERATING LAYER ]</span>
+            <span>NO MYSTERY. JUST MACHINERY.</span>
+          </div>
+          <div className="system-intro">
+            <h2>
+              BIG IDEAS.
+              <br />
+              CONNECTED MINDS.
+            </h2>
+            <div>
+              <Star className="intro-star" />
+              <p>Give your agents a world to work in.</p>
+              <p>
+                Relay turns a customer request into a coordinated mission. Six focused services.
+                Clear boundaries. And a human hand on the controls whenever it matters.
+              </p>
+              <a href="#console">
+                TAKE IT FOR A SPIN <ArrowDownRight size={20} />
+              </a>
+            </div>
+          </div>
+          <div className="agent-rack">
+            {stages.map((stage, index) => (
+              <button
+                className={`agent-module ${index === agent ? 'engaged' : ''}`}
+                key={stage.name}
+                onClick={() => setAgent(index)}
+                aria-pressed={index === agent}
+              >
+                <span className="module-number">
+                  0{index + 1}
+                  <Plus size={13} />
+                </span>
+                <span className="module-symbol" aria-hidden="true">
+                  {index === 0
+                    ? '↙'
+                    : index === 1
+                      ? '≋'
+                      : index === 2
+                        ? '✳'
+                        : index === 3
+                          ? '⌾'
+                          : index === 4
+                            ? '↯'
+                            : '✓'}
+                </span>
+                <strong>{stage.name.toUpperCase()}</strong>
+                <span className="module-type">{stage.agent.toUpperCase()} SERVICE</span>
+                <span className="module-connector">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="agent-description" aria-live="polite">
+            <span>
+              CHANNEL 0{agent + 1} <span className="tiny-led" />
+            </span>
+            <h3>{agentDetails[agent][0]}</h3>
+            <p>{agentDetails[agent][1]}</p>
+            <code>{stages[agent].tool}</code>
           </div>
         </section>
 

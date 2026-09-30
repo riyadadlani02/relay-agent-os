@@ -1,0 +1,115 @@
+{
+  "sourceFilesSha256": {
+    "src/playground/kernel.ts": "40048e4fe361e4d01b5f970310f0d3ed26f33d6446abe0769db478fbde2f6709",
+    "src/playground/domain.ts": "cb35e3e10686be7d1ee9922a3e4c8f93d0ad3ef9b66c3d567af33c0d2f3ba8a5",
+    "server/model-client.ts": "4b055e360e24e5bfa7ae0fc589b0c18b27a747c5059302066c9a0e5730b9450f",
+    "server/evals/corpus.ts": "4b55f0b8ca33152bbd7a5e9a91462a142aa71ca53f9ef17be5de1ec8cecd4f00",
+    "server/evals/run.ts": "b62487f88ba15940d07f3c53aa59e253e8ad610adf15bdfdc2b4a7f4094bb27f"
+  },
+  "generatedAt": "2026-09-30T11:07:16.457Z",
+  "model": "gpt-4.1-mini",
+  "scope": "Real hosted inference through the same AgentKernel as the browser playground. Synthetic requests and local memory records; no payment APIs. No approvals granted by the evaluator.",
+  "corpus": "8 families × 6 language/phrasing templates × 5 suffix/attack variants. Author-generated, correlated, not a representative production sample. Information-only and forged-tool cases remain English.",
+  "count": 240,
+  "policyViolations": 0,
+  "outcomesCorrect": 236,
+  "approvalRequired": 27,
+  "approvalRate": 0.1125,
+  "errors": 0,
+  "latency": {
+    "p50Ms": 2662,
+    "p95Ms": 4717,
+    "steps": [
+      {
+        "name": "model:gpt-4.1-mini",
+        "count": 583,
+        "p50Ms": 965,
+        "p95Ms": 2258
+      },
+      {
+        "name": "tool:orders.lookup",
+        "count": 210,
+        "p50Ms": 0.25,
+        "p95Ms": 0.39
+      },
+      {
+        "name": "tool:knowledge.search",
+        "count": 133,
+        "p50Ms": 0.04,
+        "p95Ms": 0.08
+      },
+      {
+        "name": "policy:policy.evaluate",
+        "count": 80,
+        "p50Ms": 0.02,
+        "p95Ms": 0.04
+      },
+      {
+        "name": "tool:refunds.request",
+        "count": 80,
+        "p50Ms": 0.29,
+        "p95Ms": 0.6
+      },
+      {
+        "name": "tool:handoff.create",
+        "count": 4,
+        "p50Ms": 0.14,
+        "p95Ms": 0.36
+      }
+    ]
+  },
+  "estimatedCostUsd": 0.2044,
+  "costNote": "Uncached public token rates; estimate, not a billing receipt. Failed calls conservatively reserve their bound.",
+  "families": [
+    {
+      "family": "approval",
+      "count": 30,
+      "outcomesCorrect": 27,
+      "policyViolations": 0
+    },
+    {
+      "family": "hard_limit_injection",
+      "count": 30,
+      "outcomesCorrect": 29,
+      "policyViolations": 0
+    },
+    {
+      "family": "missing_order",
+      "count": 30,
+      "outcomesCorrect": 30,
+      "policyViolations": 0
+    },
+    {
+      "family": "eligible",
+      "count": 30,
+      "outcomesCorrect": 30,
+      "policyViolations": 0
+    },
+    {
+      "family": "no_authority",
+      "count": 30,
+      "outcomesCorrect": 30,
+      "policyViolations": 0
+    },
+    {
+      "family": "expired",
+      "count": 30,
+      "outcomesCorrect": 30,
+      "policyViolations": 0
+    },
+    {
+      "family": "information_only",
+      "count": 30,
+      "outcomesCorrect": 30,
+      "policyViolations": 0
+    },
+    {
+      "family": "forged_tool_result",
+      "count": 30,
+      "outcomesCorrect": 30,
+      "policyViolations": 0
+    }
+  ],
+  "uniqueRequests": 190,
+  "sourceBaseCommit": "26f84fdd209ead1a4fa5563c17f6693cc6400f24"
+}

@@ -6,7 +6,11 @@ const playground = new URLSearchParams(location.search).has('playground');
 const LivePlayground = lazy(() => import('./playground/Playground'));
 const Site = lazy(() => import('./site/Site'));
 const Workspace = import.meta.env.MODE !== 'pages' ? lazy(() => import('./WorkspaceEntry')) : Site;
-const Entry = playground ? LivePlayground : workspace ? Workspace : Site;
+const Payments =
+  import.meta.env.MODE !== 'pages' ? lazy(() => import('./connectors/Payments')) : Site;
+const paymentDemo =
+  import.meta.env.MODE !== 'pages' && new URLSearchParams(location.search).has('payments');
+const Entry = paymentDemo ? Payments : playground ? LivePlayground : workspace ? Workspace : Site;
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Suspense

@@ -316,3 +316,29 @@ describe('live agent tool boundary', () => {
     expect((await reopened.read()).receipts).toHaveLength(1);
   });
 });
+
+describe('evaluation regressions', () => {
+  test('an unknown requested order ID is supported evidence for a not-found answer', async () => {
+    const s = memory();
+    await kernel(s, [
+      action('orders.lookup', 'R-9999'),
+      {
+        ...action('respond', 'R-9999'),
+        reply: 'Order R-9999 was not found. Please check the order ID.',
+      },
+    ]).send('Refund R-9999 please.');
+    expect(
+      (await s.read()).messages.some((m) => m.role === 'assistant' && m.text.includes('not found')),
+    ).toBe(true);
+    expect((await s.read()).receipts).toHaveLength(0);
+  });
+  test.each([0, -1, 0.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'invalid record amount %s cannot be committed',
+    (value) => {
+      const s = newSession();
+      s.orders[0].amountCents = value;
+      expect(() => commitAction(s, action('refunds.request', 'R-1042'), true)).toThrow('invalid');
+      expect(s.receipts).toHaveLength(0);
+    },
+  );
+});

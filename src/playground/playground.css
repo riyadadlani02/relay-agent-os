@@ -770,3 +770,62 @@ body {
     scroll-behavior: auto;
   }
 }
+.model-note {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0 0 22px;
+}
+.model-note a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.voice-input {
+  padding: 15px 20px;
+  border-top: 1px solid #71765f55;
+  font-size: 11px;
+  line-height: 1.8;
+  background: #e0e3d4;
+}
+.voice-input summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.voice-input p {
+  margin: 10px 0;
+  max-width: 70ch;
+}
+.voice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+.voice-controls label {
+  display: grid;
+  gap: 6px;
+}
+.voice-controls select {
+  padding: 7px;
+  font: inherit;
+  color: #20241c;
+  background: #f3f3ea;
+  border: 1px solid #71765f;
+}
+.voice-input textarea {
+  display: block;
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  font: inherit;
+  margin: 7px 0 12px;
+}
+.voice-upload {
+  display: grid;
+  margin-top: 15px;
+  gap: 7px;
+}
+.voice-input > a {
+  display: block;
+  margin-top: 10px;
+  text-decoration: underline;
+}

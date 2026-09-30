@@ -10,6 +10,8 @@ Palette: olive paper `#b5bea0`, graphite `#20241c`, orange `#f37543`, light pane
 
 Type: locally bundled Anton for display lettering and Space Mono for controls. Text is rendered as HTML; the hero hardware is an image. Keyboard focus, a skip link, an explicit motion control, and reduced-motion support are included.
 
+The first screen now explains the customer workflow and exposes three one-click refund outcomes. The cassette is a supporting image. Measured hosted-model results, raw evidence and the deployment case study have direct links from the hero/navigation. The product film remains available below the evidence.
+
 ## Original image asset
 
 - Final asset: [`public/images/agent-core.png`](../public/images/agent-core.png)
@@ -33,6 +35,7 @@ Local URLs:
 - `/`: retro website and browser sandbox
 - `/?playground=1`: real model inference, free-text requests, tool execution, and persisted records
 - `/?workspace=1`: original API-backed operations workspace
+- `/?payments=1`: local-only Razorpay test checkout and refund readback
 - GitHub Pages builds intentionally omit access to the API-backed workspace.
 
 ## Publishing

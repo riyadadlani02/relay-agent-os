@@ -10,9 +10,9 @@ test('static build loads at its GitHub Pages prefix without API calls', async ({
   page.on('pageerror', (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 980 });
   await page.goto('./');
-  await expect(page.getByRole('heading', { name: 'AGENTS, UNLEASHED.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Agents act.*You set the limits/ })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
-  await expect(page.locator('.hero-art img')).toHaveJSProperty('naturalWidth', 1254);
+  await expect(page.locator('.proof-device img')).toHaveJSProperty('naturalWidth', 1254);
   await page.screenshot({ path: 'docs/site-desktop.png', animations: 'disabled' });
   expect(apiRequests).toEqual([]);
   expect(errors).toEqual([]);
@@ -22,8 +22,7 @@ test('browser demo survives reload at approval and commits one verified effect',
   page,
 }) => {
   await page.goto('./');
-  await page.getByRole('button', { name: /B—02 Human in the loop/ }).click();
-  await page.getByRole('button', { name: 'Launch selected mission', exact: true }).click();
+  await page.getByRole('button', { name: 'Run $249 refund demo', exact: true }).click();
   await expect(page.getByText('Your judgment. Your call.', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText('Your judgment. Your call.', { exact: true })).toBeVisible();
@@ -40,8 +39,7 @@ test('browser demo survives reload at approval and commits one verified effect',
 
 test('hard boundaries and idempotent retries work in the static site', async ({ page }) => {
   await page.goto('./');
-  await page.getByRole('button', { name: /C—03 The hard boundary/ }).click();
-  await page.getByRole('button', { name: 'Launch selected mission', exact: true }).click();
+  await page.getByRole('button', { name: 'Run $750 refund demo', exact: true }).click();
   await expect(page.locator('.demo-outcome')).toContainText('Action blocked by policy.');
   await page.getByRole('button', { name: /D—04 A second chance/ }).click();
   await page.getByRole('button', { name: 'Launch selected mission', exact: true }).click();
@@ -53,7 +51,9 @@ test('responsive page and controls have no automated WCAG A/AA violations', asyn
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('./');
-    await expect(page.getByRole('heading', { name: 'AGENTS, UNLEASHED.' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /Agents act.*You set the limits/ }),
+    ).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
@@ -107,4 +107,11 @@ test('live playground is responsive and accessible before model loading', async 
       animations: 'disabled',
     });
   }
+});
+
+test('evidence deep link lands on measured results after the lazy page loads', async ({ page }) => {
+  await page.goto('./#evidence');
+  await expect(page.getByRole('heading', { name: 'Test the boundary.' })).toBeInViewport();
+  await expect(page.locator('.evidence-metrics')).toContainText('236/240 matched');
+  await expect(page.locator('.evidence-caveat')).toContainText('190 distinct strings');
 });

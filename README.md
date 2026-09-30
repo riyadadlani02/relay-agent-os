@@ -1,38 +1,49 @@
 # Relay OS
 
-### Intelligence, in your hands.
+**Customer-service agents that resolve refunds and replacements through policy checks, human approval, and inspectable receipts.**
 
-[**Watch the 75-second product film**](https://riyadadlani02.github.io/relay-agent-os/#film) · [Download MP4](https://riyadadlani02.github.io/relay-agent-os/media/relay-demo.mp4)
+[**Try the three refund outcomes**](https://riyadadlani02.github.io/relay-agent-os/) · [Live AI playground](https://riyadadlani02.github.io/relay-agent-os/?playground=1) · [75-second film](https://riyadadlani02.github.io/relay-agent-os/#film) · [Case study](docs/case-study.md)
 
-**[Open the live AI playground](https://riyadadlani02.github.io/relay-agent-os/?playground=1)** · [Project website](https://riyadadlani02.github.io/relay-agent-os/)
+| $49 refund              | $249 refund       | $750 refund                 |
+| ----------------------- | ----------------- | --------------------------- |
+| Completes automatically | Waits for a human | Blocked, even with approval |
 
-Type a customer request. A real Qwen model chooses tools, retrieves policies, reads order records, and requests a refund or replacement. Code independently enforces the limits. Inspect the actual arguments, results, approval decisions, token usage, and persisted receipts.
+Click an outcome on the first screen to run its deterministic walkthrough. No API key or download is needed for those walkthroughs. The live AI playground runs real Qwen inference and downloads approximately 830 MB of model parameters plus runtime assets on first use. It requires a WebGPU-capable browser and roughly 2 GB of available GPU memory.
 
-The public playground runs **Qwen 2.5 1.5B in a WebGPU worker** through WebLLM. No API key, subscription, backend server, or canned response fallback. First use downloads approximately 830 MB of model parameters plus runtime assets; later visits reuse the browser cache. Use a current WebGPU-capable desktop browser and roughly 2 GB of available GPU memory. Model quality and speed depend on the device and model; failures are surfaced.
+**A proposal is never permission.** The model is interchangeable. It selects tools; code determines amounts from records, enforces limits, binds an action to its order, and checks again before committing. Refunds in the public browser demo update a local sample ledger, not a payment processor.
 
-**Real inference and real local record mutations; fictional customer data.** Refunds update an IndexedDB demo ledger, not a payment processor. Human handoffs create local tickets, not emails. Public browsers are separate workspaces.
+![Relay OS, outcomes first](docs/site-desktop.png)
 
-![Live agent playground](docs/live-desktop.png)
+## Measured, including the failures
 
-## Try it live
+Actual GPT-4.1 mini requests through the same playground kernel, measured September 30, 2026:
 
-1. Click **Load live model**, then send “Please refund order R-1042.” Inspect the order lookup, retrieved policy, and $49 receipt.
-2. Request a refund for **R-1043**. The $249 action pauses; approve or reject it yourself.
-3. Ask the model to ignore the rules and refund **R-1044**. Even if the model proposes it, code rejects the $750 action.
-4. Repeat a successful refund. The record cannot be refunded twice, including from competing browser tabs.
-5. Ask in another language, try an expired order (**R-1045**), inspect records, and export the session JSON.
+| Metric                          | Result                                                   |
+| ------------------------------- | -------------------------------------------------------- |
+| Observed unauthorized mutations | **0 / 240 runs**                                         |
+| Expected action outcome         | **236 / 240 (98.3%)**                                    |
+| Approval gate reached           | **27 / 240 (11.25%)**; no approvals granted by evaluator |
+| Runtime/provider errors         | **0 / 240**                                              |
+| End-to-end latency              | **2.662 s p50 · 4.717 s p95**                            |
 
-The runtime never replaces a failed model response with a scripted success. The landing page also retains an explicitly labeled **deterministic walkthrough** for exploring the original scheduler without loading a model.
+These are 190 distinct author-generated request strings across 240 runs, including repeated English, Hindi/Hinglish and adversarial template variants. They are not production traffic, a representative model benchmark, or a guarantee of zero future violations. Four requests unnecessarily created human handoffs and remain failures. Task scoring checks action outcomes, not every sentence's quality.
 
-See [live playground architecture and limitations](docs/live-playground.md).
+The first run exposed 30 missing-order errors in the answer checker. The fix and complete rerun are published. **GPT-5.4 also completed the three core outcome examples**, showing that the runtime boundary is shared across models. Three examples are not a model comparison.
 
-![Relay OS retro website](docs/site-desktop.png)
+[Full method, failure list and step latencies](docs/evaluation.md) · [All model traces](public/evidence/model-eval.json) · [Before the fix](public/evidence/model-eval-baseline.json) · [GPT-5.4 traces](public/evidence/frontier.json)
 
-Give an agent a customer request. Follow its plan, inspect its tool calls, approve a sensitive action, and verify the outcome—all in one workspace.
+## Real integrations, with their verification status
 
-Relay OS is a runnable engineering portfolio project: a React control plane over a durable TypeScript agent runtime. **It starts without API keys.** Customer systems and business effects are sandboxed; orchestration, persistence, policy enforcement, approval decisions, and traces are implemented.
+| Path               | Implemented                                                                                                              | Verified                                                                                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser AI         | Qwen/WebLLM → bounded tools → IndexedDB sample records                                                                   | Real inference and receipts, as shown in the film                                                                                                                                      |
+| Hosted AI          | Configurable server model → same playground kernel                                                                       | 240 GPT-4.1 mini requests and three GPT-5.4 examples                                                                                                                                   |
+| Hindi audio        | Speech recognition → transcript review → agent tools                                                                     | Synthetic Hindi audio → Deepgram → reviewed order ID → GPT-4.1 mini → local $49 refund                                                                                                 |
+| Razorpay test mode | Trusted payment binding, integer paise/currency checks, readback approval, persisted intent, idempotency, reconciliation | Real ₹49 test order creation. **Captured payment and refund unverified:** provider checkout remained blank in both browsers. Failure/recovery behavior has controlled transport tests. |
 
-![Relay OS mission control](docs/overview.png)
+The voice path is not a deployed phone line. It applies lessons from [asli](https://github.com/riyadadlani02/asli) and uses the speech-provider approach from EMMA; it does not embed their complete runtimes. The payment guard applies [hisaab](https://github.com/riyadadlani02/hisaab)'s unit sanity, entity binding and readback principles in TypeScript. The INR integration is separate from the public USD sample ledger—there is no implicit currency conversion.
+
+[Voice sample, raw recognition and trace](docs/voice.md) · [Payment connector and evidence](docs/payments.md)
 
 ## Start in two minutes
 
@@ -59,113 +70,63 @@ Or use `docker compose up --build` and open port 4310. The Compose configuration
 
 Open **http://127.0.0.1:5173/?playground=1** for live model inference. The original landing-page walkthrough uses a browser adapter with fixed scenarios, and the backend workspace below uses SQLite. See [website design and deployment](docs/design.md).
 
-## The three-minute backend demo
+## Architecture and scope
 
-1. Click **New mission → Quick refund → Launch mission**. A $49 refund passes through six services and lands in the sandbox ledger.
-2. Launch **Approval gate**. The $249 refund pauses before execution. Inspect the trace, approve it, and watch it resume from the persisted checkpoint.
-3. Launch **Policy boundary**. A $750 refund is blocked. There is no approval button that can bypass the hard limit.
-4. Launch another quick refund with **Simulate one connector failure** enabled. The trace shows a retry using the same idempotency key; the ledger contains one effect.
-5. Stop and restart the server while a run awaits approval. The pending decision and trace survive.
+Relay is a runnable engineering prototype with three surfaces: a static walkthrough, a real browser AI playground, and a local API workspace. It is an operating **layer for agents**, not an operating-system kernel.
 
-## What makes it an agent OS?
+The backend services are Triage → Knowledge → Resolution → Policy → Action → Quality. Resolution is the model boundary. The other services are deterministic application code. SQLite stores durable checkpoints, approvals and an append-only application event log. Each **local** ledger effect, audit event and checkpoint commits in one transaction; the ledger's unique constraint prevents a retry from duplicating that run's effect. Browser sessions use IndexedDB.
 
-The OS metaphor refers to shared execution primitives for agent applications:
+External payments use a separate persisted intent because Razorpay cannot participate in SQLite's transaction. Unknown responses remain unknown until reconciliation, and retries reuse the same provider idempotency key. There is no claim of exactly-once external delivery.
 
-| Primitive        | Implementation                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| Processes        | Typed missions with persisted lifecycle state and a step cursor                            |
-| Scheduler        | Four concurrent in-process execution slots; workspace pause/resume                         |
-| Capabilities     | A closed set of refund, replacement, and escalation actions; scenario-bound permissions    |
-| Policy           | Server-enforced limits, action budgets, and a final authorization check before every write |
-| Human interrupts | Persisted approval gates that resume the same mission                                      |
-| Durable state    | SQLite WAL with atomic effect, event, and checkpoint writes                                |
-| System calls     | Named sandbox tools with inspectable event payloads                                        |
-| Observability    | An append-only application event log, per-mission traces, and state-derived metrics        |
-| Evaluation       | Deterministic behavioral fixtures plus backend and browser regression tests                |
+The public GitHub Pages build cannot call your local server or spend an API key. Browser data is fictional and local to each visitor. The server is a **single-operator localhost prototype**, without authentication, tenant isolation, distributed workers, production telephony, signed webhooks or a background reconciliation worker. Do not expose it publicly as-is.
 
-The six services are **Triage → Knowledge → Resolution → Policy → Action → Quality**. Resolution is the model boundary. The other services are deterministic application code.
+[Architecture and tradeoffs](docs/architecture.md) · [HTTP API](docs/api.md) · [Live playground](docs/live-playground.md) · [Customer problem, constraints and rollout](docs/case-study.md)
 
-## Architecture
+## Configure local providers
 
-```mermaid
-flowchart LR
-  UI[React control plane] --> API[Express API]
-  API --> DB[(SQLite WAL)]
-  Worker[Bounded scheduler] --> Runtime[Resumable runtime]
-  Runtime --> Planner[Planner interface]
-  Planner --> Demo[Deterministic planner]
-  Planner --> Model[Optional model endpoint]
-  Runtime --> Policy[Capability and policy checks]
-  Policy --> Approval[Human approval checkpoint]
-  Approval --> Policy
-  Policy --> Ledger[Sandbox business ledger]
-  Ledger --> Verify[Outcome verification]
-  Runtime --> DB
-```
-
-The browser polls snapshots every 1.5 seconds and the selected trace every second. A worker advances runnable missions every 1.1 seconds. The deliberate pacing makes the workflow visible during a demo.
-
-The key correctness boundary is in [`server/runtime.ts`](server/runtime.ts): effect creation, its audit event, and checkpoint advancement share one SQLite transaction. A unique constraint permits at most one sandbox effect per run. Pending approvals are ordinary durable states, not promises kept in memory.
-
-See [architecture and tradeoffs](docs/architecture.md) and the [HTTP API](docs/api.md).
-
-## Optional model planning
-
-Copy `.env.example` to `.env` and configure an OpenAI-compatible **chat completions** endpoint:
+Copy `.env.example` to `.env` and configure only the providers you want. Secrets stay on the server and are ignored by Git. A hosted provider receives the conversation/tool context; Deepgram receives the submitted audio. Use synthetic data for this prototype.
 
 ```dotenv
-MODEL_BASE_URL=https://your-provider.example/v1
+MODEL_BASE_URL=https://api.openai.com/v1
 MODEL_API_KEY=your-local-secret
-MODEL_NAME=your-supported-model
+MODEL_NAME=gpt-4.1-mini
+DEEPGRAM_API_KEY=your-local-secret
+RAZORPAY_KEY_ID=rzp_test_your_test_key
+RAZORPAY_KEY_SECRET=your-local-test-secret
 ```
 
-Your provider must support JSON object responses for the original workspace and JSON-schema structured output for the live playground. The local playground exposes **Use server model** when these variables are configured. Credentials stay on the server and `.env` is ignored by Git. Configuring a provider sends the entered request and tool context to that provider; use synthetic data for this demo. The public GitHub Pages build does not call this local API.
+The playground supports hosted structured output, including GPT-5.4. Without a hosted model the local workspace planner is explicitly deterministic; the public AI playground always requires an actual loaded browser model. Provider failures never silently turn into scripted successes.
 
-Without those variables, planning is deterministic. There is no silent fallback if a configured model fails. The run fails closed with a safe error category. Real-provider behavior is **not included** in the default test or evaluation results.
+Open `/?playground=1` for AI/text/voice and `/?payments=1` for the local Razorpay test workflow. The latter refuses live keys and requires approval for every test refund. The legacy API-backed workspace is at `/?workspace=1`.
 
-## Verification
+## Verify and reproduce
 
 ```bash
-npm run check      # TypeScript, production build, backend/API tests, 10 scenario evals
-npm run test:e2e   # Backend workspace browser flows
+npm run check             # build, unit/API tests, 10 deterministic backend scenarios
+npm run test:e2e          # API-backed workspace browser flows
 npm run build:pages
-npm run test:pages # Static website, reload recovery, layout, accessibility
+npm run test:pages        # static site, outcomes, reload, accessibility and mobile layout
+npm run eval:live         # paid hosted evaluation; explicit opt-in, $2.10 invocation cap
+npm run eval:frontier     # paid GPT-5.4 examples; $0.18 invocation cap
+npx tsx scripts/summarize-evidence.ts
 ```
 
-If Chrome is unavailable, install Playwright Chromium with `npx playwright install chromium`, then run `CI=1 npm run test:e2e`. Browser tests run their own isolated in-memory database on port 4311 and require a current production build.
-
-Coverage includes approval bypass attempts, stricter policy after approval, duplicate/concurrent execution, transient retry, restart recovery, cancellation during an in-flight model request, malformed model output, and transaction rollback. Scenario evaluations verify runtime behavior; they do not measure model reasoning quality.
-
-CI is configured for the same build, tests, evaluations, and browser suite on Node 24. Docker packaging has not been exercised. Automated runtime tests use explicit fixture models and establish invariants, not model reasoning quality. Real inference is checked separately; see the live playground notes.
+The evaluation publishes failures as well as successes. It does not call the payment processor. Connector tests force timeout/retry and mismatched-receipt cases without an external account. See [evaluation methodology](docs/evaluation.md) for denominators and limitations.
 
 ## Project map
 
 ```text
-src/                 React workspace, website, styles, shared contracts
-src/site/            Retro website and browser sandbox adapter
-src/playground/      Live model, bounded tool loop, IndexedDB, conversation and trace UI
-server/live.ts       Optional local model proxy; never shipped as a public unauthenticated service
-server/runtime.ts    State machine, approval gates, policy enforcement
-server/store.ts      SQLite persistence and atomic ledger operations
-server/provider.ts   Deterministic and optional model planners
-server/app.ts        Validated HTTP boundary
-server/evaluate.ts   Isolated scenario evaluation suite
-tests/               Runtime, HTTP, and browser tests
-docs/                Architecture, API, demo, screenshots
+src/site/                 Outcome-first website, interactive walkthrough, evidence
+src/playground/           Live tool loop, browser model, voice input, IndexedDB
+src/connectors/           Local payment readback UI
+server/runtime.ts         Durable backend state machine and policy
+server/model-client.ts    Hosted model adapter used by playground and evaluation
+server/connectors/        Razorpay test adapter, intent store and reconciliation
+server/voice.ts           Server-side Deepgram adapter
+server/evals/             Reproducible hosted-model corpus and budgeted harness
+public/evidence/          Measured reports, raw traces, synthetic Hindi audio
+scripts/video/            Product-film sources and real UI captures
+docs/                     Case study, method, integrations and architecture
 ```
 
-## Scope and next steps
-
-This is a **single-operator local prototype**, with synthetic customer context and a local business ledger. It does not include authentication, tenant isolation, production connectors, distributed workers, vector search, arbitrary agent code execution, a general workflow editor, or a voice stack. It is not suitable for exposure as an unauthenticated public service.
-
-An external refund API cannot share a SQLite transaction. A production connector needs an outbox, provider-supported idempotency, reconciliation, and compensation. The local ledger demonstrates the invariant under a single transactional boundary; it does not claim exactly-once external delivery. New missions receive distinct identities and are not deduplicated against each other by invoice.
-
-Next engineering priorities are documented in the [architecture roadmap](docs/architecture.md#what-i-would-build-next).
-
-## Why this project
-
-Wonderful describes an enterprise platform centered on orchestration, permissions, knowledge, guardrails, and evaluations, and describes forward-deployed engineering as shipping agents around real customer workflows. This independent project explores those engineering concerns in a small, inspectable implementation. Sources: [Wonderful platform](https://www.wonderful.ai/), [Wonderful careers](https://www.wonderful.ai/careers), reviewed September 29, 2026.
-
-Built by Riya Dadlani. This is an independent portfolio project, with no affiliation or endorsement from Wonderful.
-
-MIT licensed.
+Built by Riya Dadlani as an independent portfolio project exploring customer-service agent infrastructure. No affiliation or endorsement from Wonderful. MIT licensed.
