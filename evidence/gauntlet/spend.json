@@ -1,0 +1,22 @@
+{
+  "capUsd": 3,
+  "priorWorkReserveUsd": 1,
+  "gauntletConservativeCostUsd": 1.9259501,
+  "totalAllocatedUsd": 2.9259501,
+  "remainingAllocatedUsd": 0.07404989999999989,
+  "models": [
+    {
+      "model": "gpt-4.1-mini",
+      "calls": 1514,
+      "conservativeCostUsd": 0.5380976000000001,
+      "unsettledCalls": 0
+    },
+    {
+      "model": "gpt-5.4",
+      "calls": 551,
+      "conservativeCostUsd": 1.3878525,
+      "unsettledCalls": 0
+    }
+  ],
+  "note": "Uncached token estimates; prior $1 is a conservative allocation for earlier work and uncertainty, not an invoice. Both models shared a persistent ledger. No further paid calls are required to inspect or rescore these reports."
+}
