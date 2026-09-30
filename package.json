@@ -28,7 +28,8 @@
     "gauntlet:live": "tsx server/gauntlet/run.ts --live",
     "gauntlet:compare": "tsx server/gauntlet/compare.ts",
     "gauntlet:identity": "tsx server/gauntlet/identity.ts",
-    "gauntlet:replay": "tsx scripts/replay-gauntlet.ts"
+    "gauntlet:replay": "tsx scripts/replay-gauntlet.ts",
+    "os:live": "tsx scripts/os-live.ts"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

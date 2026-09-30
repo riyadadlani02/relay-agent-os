@@ -1,8 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  Bot,
   Check,
+  Cpu,
   FastForward,
+  Pause,
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
@@ -15,40 +18,120 @@ import '@fontsource/space-mono/latin-400.css';
 import '@fontsource/space-mono/latin-700.css';
 import './console.css';
 import { dollars } from '../playground/domain';
+import { BrowserModel, ServerModel } from '../playground/model';
+import type { AgentModel } from './agent';
 import { verify, type JournalEntry } from './journal';
 import { isLive } from './capability';
 import type { StepRecord } from './kernel';
-import { bootSupport, customers } from './support';
+import { bootLive, bootSupport, customers, startConversation } from './support';
 
 const repo = 'https://github.com/riyadadlani02/relay-agent-os';
 const operator = { kind: 'operator' as const, id: 'ops' };
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+type Mode = 'scripted' | 'live';
+const answerOf = (value: unknown) =>
+  typeof (value as { result?: unknown } | undefined)?.result === 'string'
+    ? (value as { result: string }).result
+    : JSON.stringify(value ?? null);
+
 export default function KernelConsole() {
-  const kernel = useRef(bootSupport());
+  const agentModel = useRef<AgentModel | undefined>(undefined);
+  const browserModel = useRef<BrowserModel | undefined>(undefined);
+  const constrainRef = useRef(true);
+  const bootMode = (mode: Mode) =>
+    mode === 'scripted'
+      ? bootSupport()
+      : bootLive({ model: () => agentModel.current, constrain: () => constrainRef.current });
+  const kernel = useRef<ReturnType<typeof bootSupport>>(bootSupport());
+  const [mode, setMode] = useState<Mode>('scripted');
   const [view, setView] = useState(() => kernel.current.snapshot());
   const [log, setLog] = useState<StepRecord[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const [tampered, setTampered] = useState<JournalEntry[]>();
   const [allCaps, setAllCaps] = useState(false);
+  const [thinking, setThinking] = useState('');
+  const stopRequested = useRef(false);
+  const [engine, setEngine] = useState<{ name?: string; loading?: boolean; progress?: string }>({});
+  const [serverName, setServerName] = useState<string>();
+  const [customer, setCustomer] = useState(customers[0].id);
+  const [message, setMessage] = useState(customers[0].request);
+  const [constrain, setConstrain] = useState(true);
+
+  useEffect(() => {
+    if (import.meta.env.MODE === 'pages') return;
+    let active = true;
+    fetch('/api/live/config')
+      .then((r) => r.json())
+      .then((data) => active && data.enabled && setServerName(data.model))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+      browserModel.current?.dispose();
+    };
+  }, []);
 
   const refresh = () => setView(kernel.current.snapshot());
   async function step() {
-    const record = await kernel.current.step();
-    if (record) setLog((l) => [record, ...l].slice(0, 80));
-    refresh();
-    return record;
+    const next = kernel.current.peek();
+    if (mode === 'live' && next)
+      setThinking(`${next.name} (pid ${next.pid}) is proposing its next call…`);
+    try {
+      const record = await kernel.current.step();
+      if (record) setLog((l) => [record, ...l].slice(0, 80));
+      return record;
+    } finally {
+      setThinking('');
+      refresh();
+    }
   }
   async function run() {
     setRunning(true);
     setError('');
+    stopRequested.current = false;
     try {
-      for (let i = 0; i < 200 && (await step()); i++)
-        if (!reducedMotion()) await new Promise((r) => setTimeout(r, 90));
+      for (let i = 0; i < 200 && !stopRequested.current && (await step()); i++)
+        if (mode === 'scripted' && !reducedMotion()) await new Promise((r) => setTimeout(r, 90));
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setRunning(false);
     }
+  }
+  function switchMode(next: Mode) {
+    if (next === mode) return;
+    kernel.current = bootMode(next);
+    setMode(next);
+    setLog([]);
+    setTampered(undefined);
+    setError('');
+    refresh();
+  }
+  async function loadEngine(useServer: boolean) {
+    setError('');
+    try {
+      if (useServer && serverName) {
+        agentModel.current = new ServerModel(serverName);
+        setEngine({ name: serverName });
+        return;
+      }
+      browserModel.current?.dispose();
+      const model = new BrowserModel();
+      browserModel.current = model;
+      setEngine({ loading: true, progress: 'Starting…' });
+      await model.load((fraction, text) =>
+        setEngine({ loading: true, progress: `${Math.round(fraction * 100)}% · ${text}` }),
+      );
+      agentModel.current = model;
+      setEngine({ name: model.name });
+    } catch (e) {
+      setEngine({});
+      setError((e as Error).message);
+    }
+  }
+  function start() {
+    act(() => startConversation(kernel.current, customer, message));
   }
   function act(action: () => void) {
     setError('');
@@ -60,7 +143,7 @@ export default function KernelConsole() {
     refresh();
   }
   function reset() {
-    kernel.current = bootSupport();
+    kernel.current = bootMode(mode);
     setLog([]);
     setTampered(undefined);
     setError('');
@@ -86,6 +169,7 @@ export default function KernelConsole() {
   const live = view.processes.filter((p) => p.state !== 'exited').length;
   const caps = view.capabilities.filter((c) => allCaps || c.holder.startsWith('process:'));
   const request = customers.map((c) => [c.id, c.request] as const);
+  const conversations = view.processes.filter((p) => p.ppid === null);
 
   return (
     <div className="os-app">
@@ -109,30 +193,59 @@ export default function KernelConsole() {
             <p className="os-kicker">Agents are processes. Actions are syscalls.</p>
             <h1 id="os-title">A proposal is never permission.</h1>
           </div>
-          <p>
-            Four customers share one kernel. Each conversation runs as a process that holds only the
-            capabilities it was handed. Every call passes the same gate: capability → policy → the
-            owner&apos;s consent → operator approval → atomic commit → hash-chained journal.
-            <strong>
-              {' '}
-              Programs here are scripted stand-ins for model output, so every decision is
-              reproducible.
-            </strong>{' '}
-            Real inference runs in the{' '}
-            <a href={`${import.meta.env.BASE_URL}?playground=1`}>playground</a>.
-          </p>
+          {mode === 'scripted' ? (
+            <p>
+              Four customers share one kernel. Each conversation runs as a process that holds only
+              the capabilities it was handed. Every call passes the same gate: capability → policy →
+              the owner&apos;s consent → operator approval → atomic commit → hash-chained journal.
+              <strong>
+                {' '}
+                In this scenario, scripted programs stand in for model output, so every decision is
+                reproducible.
+              </strong>{' '}
+              Switch to <em>Live AI agents</em> to run real language models on the same kernel.
+            </p>
+          ) : (
+            <p>
+              Real language-model agents run as processes. Each quantum the model sees its task, its
+              own capabilities and every earlier outcome, and proposes one syscall as JSON. A
+              concierge agent can start a refund agent and delegate narrowed authority to it. The
+              kernel checks every proposal:{' '}
+              <strong>what the model says is never what happens by itself.</strong> Customers and
+              the operator answer the prompts below.
+            </p>
+          )}
         </section>
 
         <div className="os-controls" role="group" aria-label="Scheduler controls">
+          <div className="os-modes" role="group" aria-label="Programs">
+            {(['scripted', 'live'] as const).map((m) => (
+              <button
+                key={m}
+                aria-pressed={mode === m}
+                className={mode === m ? 'os-primary' : undefined}
+                disabled={running}
+                onClick={() => switchMode(m)}
+              >
+                {m === 'scripted' ? 'Scripted scenario' : 'Live AI agents'}
+              </button>
+            ))}
+          </div>
           <button onClick={() => void step()} disabled={running || !live}>
             <SkipForward size={16} /> Step
           </button>
           <button className="os-primary" onClick={() => void run()} disabled={running || !live}>
             <FastForward size={16} /> Run until a person is needed
           </button>
-          <button onClick={reset} disabled={running}>
-            <RotateCcw size={16} /> Reset
-          </button>
+          {running && mode === 'live' ? (
+            <button onClick={() => (stopRequested.current = true)}>
+              <Pause size={16} /> Pause after this step
+            </button>
+          ) : (
+            <button onClick={reset} disabled={running}>
+              <RotateCcw size={16} /> Reset
+            </button>
+          )}
           <span className="os-meter" aria-live="polite">
             tick {view.tick} · {live} live · {view.requests.length} waiting on people
           </span>
@@ -143,12 +256,138 @@ export default function KernelConsole() {
           </p>
         )}
 
+        {mode === 'live' && (
+          <section className="os-panel os-live" aria-labelledby="live-title">
+            <div className="os-live-grid">
+              <div>
+                <h2 id="live-title">Start a conversation</h2>
+                <p className="os-engine" role="status">
+                  <Cpu size={16} />{' '}
+                  {engine.name
+                    ? `Model: ${engine.name}`
+                    : engine.loading
+                      ? `Loading model · ${engine.progress}`
+                      : 'No model loaded.'}
+                </p>
+                {!engine.name && (
+                  <div className="os-actions">
+                    <button
+                      className="os-primary"
+                      disabled={engine.loading}
+                      onClick={() => void loadEngine(false)}
+                    >
+                      <Bot size={15} /> Load browser model (Qwen 2.5 1.5B, ~830 MB, WebGPU)
+                    </button>
+                    {serverName && (
+                      <button disabled={engine.loading} onClick={() => void loadEngine(true)}>
+                        Use local server model ({serverName})
+                      </button>
+                    )}
+                  </div>
+                )}
+                <div className="os-form">
+                  <label>
+                    Customer
+                    <select
+                      value={customer}
+                      disabled={running}
+                      onChange={(e) => {
+                        setCustomer(e.target.value);
+                        setMessage(customers.find((c) => c.id === e.target.value)!.request);
+                      }}
+                    >
+                      {customers.map((c) => {
+                        const order = view.world.orders.find((o) => o.id === c.orderId)!;
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.id} · owns {order.id}, {order.product}, {dollars(order.amountCents)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
+                  <label>
+                    Message
+                    <textarea
+                      rows={3}
+                      maxLength={1000}
+                      value={message}
+                      disabled={running}
+                      onChange={(e) => setMessage(e.target.value)}
+                    />
+                  </label>
+                  <label className="os-check">
+                    <input
+                      type="checkbox"
+                      checked={constrain}
+                      disabled={running}
+                      onChange={(e) => {
+                        setConstrain(e.target.checked);
+                        constrainRef.current = e.target.checked;
+                      }}
+                    />{' '}
+                    Offer the model only calls and orders it holds capabilities for. Turn off to let
+                    it propose anything and watch the kernel refuse.
+                  </label>
+                  <div className="os-actions">
+                    <button
+                      className="os-primary"
+                      disabled={!engine.name || running || !message.trim()}
+                      onClick={start}
+                    >
+                      <Bot size={15} /> Start {customer}&apos;s agent
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h2>Conversations</h2>
+                {thinking && (
+                  <p className="os-thinking" role="status">
+                    {thinking}
+                  </p>
+                )}
+                {!conversations.length && (
+                  <p className="os-empty">
+                    Start an agent, then run the scheduler. Model output is shown as proposed; the
+                    kernel&apos;s decision is shown next to it.
+                  </p>
+                )}
+                <ul className="os-conversations">
+                  {conversations.map((p) => (
+                    <li key={p.pid}>
+                      <b>
+                        {p.owner} · pid {p.pid}
+                      </b>
+                      <span>
+                        {p.state === 'exited'
+                          ? p.exit?.status === 'ok'
+                            ? answerOf(p.exit.value)
+                            : `Stopped: ${p.exit?.status}. ${p.exit?.reason ?? ''}`
+                          : p.state === 'blocked'
+                            ? p.waiting?.on === 'message'
+                              ? 'Waiting for its child agent'
+                              : `Waiting for ${p.waiting?.on}`
+                            : 'Working'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="os-grid">
           <section className="os-panel os-people" aria-labelledby="people-title">
             <h2 id="people-title">Waiting on people</h2>
             {!view.requests.length && (
               <p className="os-empty">
-                {view.tick ? 'Nobody is being asked anything.' : 'Run the scheduler to begin.'}
+                {view.tick
+                  ? 'Nobody is being asked anything.'
+                  : mode === 'live'
+                    ? 'Prompts for customers and the operator appear here.'
+                    : 'Run the scheduler to begin.'}
               </p>
             )}
             {view.requests.map((r) => (
@@ -200,17 +439,19 @@ export default function KernelConsole() {
                 </div>
               </article>
             ))}
-            <details className="os-requests-text">
-              <summary>What each customer typed</summary>
-              <dl>
-                {request.map(([id, text]) => (
-                  <div key={id}>
-                    <dt>{id}</dt>
-                    <dd>{text}</dd>
-                  </div>
-                ))}
-              </dl>
-            </details>
+            {mode === 'scripted' && (
+              <details className="os-requests-text">
+                <summary>What each customer typed</summary>
+                <dl>
+                  {request.map(([id, text]) => (
+                    <div key={id}>
+                      <dt>{id}</dt>
+                      <dd>{text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+            )}
           </section>
 
           <section className="os-panel os-ps" aria-labelledby="ps-title">
@@ -242,6 +483,9 @@ export default function KernelConsole() {
                           : p.state === 'exited'
                             ? `exited: ${p.exit?.status}`
                             : 'ready'}
+                        {p.exit?.reason && p.exit.status !== 'ok' && (
+                          <small className="os-reason">{p.exit.reason}</small>
+                        )}
                       </td>
                       <td>{p.budget.steps}</td>
                       <td>{p.budget.tokens}</td>
@@ -273,7 +517,7 @@ export default function KernelConsole() {
                   </span>
                   <code>{r.proposal}</code>
                   <b>{r.result}</b>
-                  {r.note && <small>{r.note}</small>}
+                  {r.note && <small>{mode === 'live' ? `Model's note: ${r.note}` : r.note}</small>}
                 </li>
               ))}
             </ol>

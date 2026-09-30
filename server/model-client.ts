@@ -32,16 +32,19 @@ export class HostedModel implements Model {
     this.name = config.name;
   }
   interrupt() {}
-  async complete(
+  complete(
     messages: ChatMessage[],
     signal: AbortSignal,
     allowedTools: Action['tool'][],
     orderIds: string[],
   ) {
+    return this.generate(messages, schemaForTools(allowedTools, orderIds), signal);
+  }
+  /** Strict structured output against any JSON schema; used by kernel agents. */
+  async generate(messages: ChatMessage[], schema: object, signal: AbortSignal) {
     const url = new URL(`${this.config.base.replace(/\/$/, '')}/chat/completions`);
     if (url.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(url.hostname))
       throw new Error('Model endpoint must use HTTPS.');
-    const schema = schemaForTools(allowedTools, orderIds);
     // Conservative uncached pricing, dollars per million tokens. Used only by the opt-in eval budget.
     const rate = this.name === 'gpt-4.1-mini' ? [0.4, 1.6] : [2.5, 15];
     const maxOutput = 700;

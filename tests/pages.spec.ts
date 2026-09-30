@@ -169,6 +169,13 @@ test('kernel console mediates four customers and exposes journal tampering', asy
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
     .analyze();
   expect(results.violations).toEqual([]);
+  // Live mode offers the in-browser model on the static site; no server model exists there.
+  await page.getByRole('button', { name: 'Live AI agents' }).click();
+  await expect(page.getByRole('button', { name: /Load browser model/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Use local server model/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Start alice's agent/ })).toBeDisabled();
+  const live = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  expect(live.violations).toEqual([]);
   await page.setViewportSize({ width: 390, height: 900 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);

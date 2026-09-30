@@ -22,8 +22,9 @@ The runtime is generalized into a small kernel for agents ([design](docs/kernel.
 - **Processes, scheduler and quotas:** priorities, round-robin, step and token budgets, budget carving for children, kill with subtree cleanup, and a late proposal from a killed process is discarded.
 - **IPC** only over channels the kernel created between parent and child.
 - **Hash-chained journal:** editing any committed entry breaks verification from that point on.
+- **Real LLM agents as processes:** a model proposes one syscall per step as strict JSON, sees the kernel's answer (including refusals), and can spawn a child agent with narrowed authority. Runs in the browser (Qwen, WebGPU), through a local server model, or from Node.
 
-The console runs four customers concurrently on one kernel: an automatic refund after consent, a $249 refund that needs consent and an operator, a prompt-injected agent confined by its capabilities, and a looping agent stopped by its budget. Those programs are scripted stand-ins for model output, so every decision is reproducible; real inference runs in the playground. 34 unit tests cover the kernel. Disabling any of its key checks (owner authority, capability spending, read isolation, discarding late proposals, revoking rejected grants) makes a test fail.
+The console's scripted scenario runs four customers concurrently on one kernel: an automatic refund after consent, a $249 refund that needs consent and an operator, a prompt-injected agent confined by its capabilities, and a looping agent stopped by its budget. Those programs are scripted so every decision is reproducible. Its **Live AI agents** mode runs real models on the same kernel. The adapter is tested with scripted fixtures and mocked providers; model quality on this multi-agent flow has not been measured yet (`npm run os:live -- --live` is the paid, capped way to do it). 34 unit tests cover the kernel and 5 more the agent adapter. Disabling any of the kernel's key checks (owner authority, capability spending, read isolation, discarding late proposals, revoking rejected grants) makes a test fail.
 
 ## Relay Gauntlet: the safety claim is now falsifiable
 
@@ -136,6 +137,7 @@ npm run test:pages        # static site, outcomes, reload, accessibility and mob
 npm run eval:live         # paid hosted evaluation; explicit opt-in, $2.10 invocation cap
 npm run eval:frontier     # paid GPT-5.4 examples; $0.18 invocation cap
 npm run gauntlet:replay   # free: recorded Qwen tool choices through the current kernel
+npm run os:live -- --live # paid: hosted-model agents on the kernel; $0.25 cap
 npx tsx scripts/summarize-evidence.ts
 ```
 
