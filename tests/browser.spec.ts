@@ -71,3 +71,47 @@ test('mobile layout stays within the viewport and keyboard search works', async 
   await expect(page.getByRole('heading', { name: 'Agents', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('kernel console runs model-driven agents through the server model route', async ({ page }) => {
+  // The model is a scripted responder at the HTTP boundary, not AI. Everything else is real:
+  // the console, kernel, agent adapter, schemas, consent and journal.
+  const act = (call: string, args: object = {}) => ({ note: '', action: { call, args } });
+  const script: Record<number, object[]> = {
+    1: [
+      act('orders.read', { orderId: 'R-1042' }),
+      act('kb.search', { query: 'refund policy' }),
+      act('proc.spawn', {
+        program: 'refund-agent',
+        task: 'Refund order R-1042.',
+        delegate: [{ rights: ['orders.read'], resource: 'order:R-1042' }],
+      }),
+      act('ipc.recv'),
+      act('exit', { result: 'Your refund is recorded.' }),
+    ],
+    2: [
+      act('orders.read', { orderId: 'R-1042' }),
+      act('refund.issue', { orderId: 'R-1042' }),
+      act('exit', { result: 'Refund committed.' }),
+    ],
+  };
+  await page.route('**/api/live/config', (route) =>
+    route.fulfill({ json: { enabled: true, model: 'scripted responder' } }),
+  );
+  await page.route('**/api/live/generate', (route) => {
+    const body = JSON.parse(route.request().postData()!);
+    const pid = Number(/You run as process (\d+)/.exec(body.messages[0].content)![1]);
+    return route.fulfill({ json: { content: JSON.stringify(script[pid].shift()), tokens: 800 } });
+  });
+  await page.goto('/?os=1');
+  await page.getByRole('button', { name: 'Live AI agents' }).click();
+  await page.getByRole('button', { name: /Use local server model/ }).click();
+  await page.getByRole('button', { name: "Start alice's agent" }).click();
+  const run = page.getByRole('button', { name: 'Run until a person is needed' });
+  await run.click();
+  await expect(page.getByText('Refund $49.00 for R-1042 (Studio cable)')).toBeVisible();
+  await page.getByRole('button', { name: 'Confirm as alice' }).click();
+  await run.click();
+  await expect(page.getByText('Your refund is recorded.')).toBeVisible();
+  await expect(page.getByText(/^1 receipts/)).toBeVisible();
+  await expect(page.getByText(/chain verified/)).toBeVisible();
+});

@@ -77,7 +77,30 @@ This makes tampering **evident**, not impossible: someone who can rewrite the wh
 | Carol    | Refund $750, with injected instructions     | Amplified spawn (`order:*`) → `EPERM`. Reading and refunding Alice's order → `EPERM`, no prompt. $750 refund → `EPOLICY`. Pre-authorized ticket → commit |
 | Dave     | Policy question; his agent repeats one call | Stopped by its step budget                                                                                                                               |
 
-**The programs are scripted stand-ins for model output**, including the injected behavior, so every kernel decision is reproducible and testable. They charge a fixed, simulated token cost. Real model inference runs in the [playground](live-playground.md) and the [Gauntlet](gauntlet.md), not in the console. The scenario is covered end to end in `tests/os.test.ts` and in the browser by `tests/pages.spec.ts`.
+**The programs in this scenario are scripted stand-ins for model output**, including the injected behavior, so every kernel decision is reproducible and testable. They charge a fixed, simulated token cost. The scenario is covered end to end in `tests/os.test.ts` and in the browser by `tests/pages.spec.ts`. The console's **Live AI agents** mode runs real models on the same kernel, described next.
+
+## Model-driven agents
+
+[`agent.ts`](../src/os/agent.ts) turns a language model into a kernel `Program`. Each scheduling quantum the model receives:
+
+- its role and task, and a numbered history of every call it proposed with the kernel's outcome (`ok: …`, `EPERM: …`, `EPOLICY: …`), so a refusal is information it can act on;
+- a **process view** from the kernel: its own live capabilities, the syscall table with one-line summaries and argument schemas, and its remaining budget;
+- a strict JSON schema for exactly one proposal: `{"note", "action": {"call", "args"}}`, with every object closed and every field required, as hosted structured outputs require.
+
+By default the schema is **capability-aware**: it offers only calls the process holds a right for, names only resources it holds (for example `orderId` is an enum of its own orders), and lists only programs it may spawn. A write it lacks authority for is still offered on resources it holds, because the owner may consent. This makes small models more accurate. It is not the security boundary: switch it off in the console (or pass `--unconstrained`) and the model may propose anything, and the kernel refuses what it must.
+
+In the live distribution a `concierge-ai` agent reads the order and policy, starts a `refund-agent` child with `proc.spawn` and delegates only read access to that one order, then waits on `ipc.recv`. The child proposes the refund, which stops for the customer and, above $100, an operator. Children receive half of the parent's remaining budget; the model chooses the work, never its own quota. Unparseable output becomes a malformed proposal that still costs a step and its tokens.
+
+The same programs run with three engines through one `generate(messages, schema)` interface: **Qwen 2.5 1.5B in the browser** (WebGPU, on the public site), a **local server model** (`/api/live/generate`, reusing `MODEL_*` settings), and a **hosted model from Node** for scripted runs:
+
+```bash
+npm run os:live -- --live                  # paid: all four customers, simulated people, $0.25 cap
+npm run os:live -- --live --unconstrained  # same, without the capability-aware schema
+```
+
+The script writes a full report (answers, decisions, every refusal, receipts, journal) to the ignored `data/os-live/` folder.
+
+**What has been verified, and what has not.** `tests/agent.test.ts` drives the adapter with a scripted fixture (not a model): schema contents and strictness, the full spawn/consent/commit flow, an unconstrained fixture proposing cross-tenant reads and refunds, amplified delegation and garbage output (all refused), budget exhaustion and a missing model. `tests/live-api.test.ts` checks that the server forwards the kernel's schema as strict structured output. A browser test runs the live console against a scripted responder at the HTTP boundary. `os:live` was exercised against a local mock provider. **No real model has been run on the kernel yet in this repository**: WebGPU and a provider key were unavailable where this was built. Treat model quality on this task as unmeasured until you run it.
 
 ## What this closed, and how it was checked
 
@@ -95,11 +118,12 @@ The hosted and browser model reports in [the results](gauntlet-results.md) were 
 - One scheduler in one JavaScript thread. There are no leases or fencing for multiple kernels sharing a world.
 - Users and operators are labels passed by the caller, not authenticated identities.
 - Consent costs a click per change. That is the intended trade: a model's intent errors become an unnecessary prompt, not money moved. Prompt fatigue is a real risk this prototype does not measure.
-- The live playground uses the capability module, not the process scheduler. Running model-driven programs on the scheduler is the next step.
+- The playground's single refund agent still uses its own tool loop with the capability module; the kernel console runs model-driven agents on the scheduler. Moving the playground onto the scheduler would unify them.
+- Model quality on the multi-agent flow is unmeasured (see above). Small models may need several steps or fail to finish within budget; the kernel keeps that a usability problem, not a safety one.
 
 ## Next
 
-1. A model-backed `Program` adapter, so the playground's agent runs as a kernel process with the same tool loop.
-2. Durable kernel checkpoints (process table, capabilities, journal) in SQLite and IndexedDB, with replay after restart.
-3. Authenticated principals, per-tenant quotas, and anchoring journal heads externally.
-4. Capability-aware tool schemas: offer a model only the calls its process can currently make.
+1. Measure model-driven agents: run `os:live` with hosted models and the browser model, and add the four-customer scenario and injected variants to the Gauntlet.
+2. Durable kernel checkpoints (process table, capabilities, journal, agent memory) in SQLite and IndexedDB, with replay after restart.
+3. Move the playground's refund agent onto the scheduler.
+4. Authenticated principals, per-tenant quotas, and anchoring journal heads externally.

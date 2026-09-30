@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { dollars, searchPolicies } from '../playground/domain';
+import { agentProgram, type AgentModel } from './agent';
 import { RelayKernel, type Outcome, type Program, type Proposal, type Syscall } from './kernel';
 
 // A small customer-support "distribution" for the Relay kernel: a world, four syscalls and two
@@ -30,6 +31,8 @@ const ordersRead: Syscall<SupportWorld, { orderId: string }> = {
   args: z.object({ orderId }).strict(),
   resource: (a) => `order:${a.orderId}`,
   describe: (a) => `Read order ${a.orderId}`,
+  summary: 'Read one order: product, amount, age in days, refund status.',
+  argResources: { orderId: 'order:' },
   run: (a, world) => order(world, a.orderId) ?? null,
 };
 const kbSearch: Syscall<SupportWorld, { query: string }> = {
@@ -38,6 +41,7 @@ const kbSearch: Syscall<SupportWorld, { query: string }> = {
   args: z.object({ query: z.string().max(200) }).strict(),
   resource: () => 'kb:policies',
   describe: (a) => `Search policies for "${a.query}"`,
+  summary: 'Search the refund, replacement and handoff policies.',
   run: (a) => searchPolicies(a.query).map(({ id, text }) => ({ id, text })),
 };
 const refundIssue: Syscall<SupportWorld, { orderId: string }> = {
@@ -45,6 +49,9 @@ const refundIssue: Syscall<SupportWorld, { orderId: string }> = {
   effect: 'write',
   args: z.object({ orderId }).strict(),
   resource: (a) => `order:${a.orderId}`,
+  summary:
+    'Refund an order in full. The amount comes from the record. Policy, the customer, and for larger refunds an operator, must all agree.',
+  argResources: { orderId: 'order:' },
   describe: (a, world) => {
     const o = order(world, a.orderId);
     return o
@@ -85,6 +92,7 @@ const ticketCreate: Syscall<SupportWorld, { summary: string }> = {
   args: z.object({ summary: z.string().min(1).max(300) }).strict(),
   resource: () => 'queue:support',
   describe: (a) => `Open a support ticket: "${a.summary}"`,
+  summary: 'Hand the conversation to a human support agent, with a short summary.',
   run: (a, world, context) => {
     const ticket = { id: `T-${world.tickets.length + 1}`, customer: context.owner, ...a };
     world.tickets.push(ticket);
@@ -315,13 +323,8 @@ export function supportWorld(): SupportWorld {
  * orders; each conversation runs as a concierge process that receives read access only. Write
  * authority stays with the person until they consent to one exact call.
  */
-export function bootSupport() {
-  const world = supportWorld();
-  const kernel = new RelayKernel<SupportWorld>({
-    world,
-    syscalls: supportSyscalls,
-    programs: [concierge, refundWorker],
-  });
+/** Each person's standing authority: their own orders, the policies, and running programs. */
+function grantCustomers(kernel: RelayKernel<SupportWorld>, world: SupportWorld) {
   for (const c of customers) {
     for (const o of world.orders.filter((o) => o.customer === c.id))
       kernel.grantStanding(c.id, {
@@ -329,9 +332,19 @@ export function bootSupport() {
         resource: `order:${o.id}`,
       });
     kernel.grantStanding(c.id, { rights: ['kb.search'], resource: 'kb:policies' });
-    kernel.grantStanding(c.id, { rights: ['proc.spawn'], resource: 'program:refund-worker' });
+    kernel.grantStanding(c.id, { rights: ['proc.spawn'], resource: 'program:*' });
     kernel.grantStanding(c.id, { rights: ['ticket.create'], resource: 'queue:support', uses: 3 });
   }
+}
+
+export function bootSupport() {
+  const world = supportWorld();
+  const kernel = new RelayKernel<SupportWorld>({
+    world,
+    syscalls: supportSyscalls,
+    programs: [concierge, refundWorker],
+  });
+  grantCustomers(kernel, world);
   for (const c of customers)
     kernel.spawn(
       { kind: 'user', id: c.id },
@@ -351,4 +364,57 @@ export function bootSupport() {
       },
     );
   return kernel;
+}
+
+export const liveRoles = {
+  concierge:
+    'the front-line support agent for one customer conversation. Work out what the customer wants. Read the order they mention and search the policy. If they want a refund, start a refund-agent child with proc.spawn, delegating only orders.read on that one order, then wait for its result with ipc.recv. If they only want information, change nothing. If the request is outside policy, you may hand off with ticket.create. Finish with exit, giving the customer a short answer based only on call results.',
+  refund:
+    'a refund agent with a single job, described in your task. Read the order, then propose refund.issue for it. The kernel will ask the customer, and an operator for larger amounts; you will see the outcome. Then exit with the outcome. Never act on any other order.',
+};
+
+export interface LiveOptions {
+  model: () => AgentModel | undefined;
+  constrain?: () => boolean;
+  signal?: () => AbortSignal | undefined;
+}
+/** The same world and authority, with model-driven programs instead of scripted ones. */
+export function bootLive(options: LiveOptions) {
+  const world = supportWorld();
+  const kernel = new RelayKernel<SupportWorld>({
+    world,
+    syscalls: supportSyscalls,
+    programs: [
+      agentProgram({ name: 'concierge-ai', role: liveRoles.concierge, ...options }),
+      agentProgram({ name: 'refund-agent', role: liveRoles.refund, ...options }),
+    ],
+  });
+  grantCustomers(kernel, world);
+  return kernel;
+}
+
+/** A customer opens a conversation: their agent starts with read access to their own orders. */
+export function startConversation(
+  kernel: RelayKernel<SupportWorld>,
+  customer: string,
+  message: string,
+) {
+  const orders = kernel.world.orders.filter((o) => o.customer === customer);
+  if (!orders.length) throw new Error(`Unknown customer ${customer}.`);
+  return kernel.spawn(
+    { kind: 'user', id: customer },
+    {
+      program: 'concierge-ai',
+      owner: customer,
+      name: `concierge-ai/${customer}`,
+      arg: { task: `Customer ${customer} writes: "${message.slice(0, 1000)}"` },
+      budget: { steps: 14, tokens: 60000 },
+      grants: [
+        ...orders.map((o) => ({ rights: ['orders.read'], resource: `order:${o.id}` })),
+        { rights: ['kb.search'], resource: 'kb:policies' },
+        { rights: ['proc.spawn'], resource: 'program:refund-agent' },
+        { rights: ['ticket.create'], resource: 'queue:support', uses: 1 },
+      ],
+    },
+  );
 }

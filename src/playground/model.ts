@@ -29,12 +29,16 @@ export class BrowserModel implements Model {
       );
     }
   }
-  async complete(
+  complete(
     messages: ChatMessage[],
     signal: AbortSignal,
     allowedTools: Action['tool'][],
     orderIds: string[],
   ) {
+    return this.generate(messages, schemaForTools(allowedTools, orderIds), signal);
+  }
+  /** Structured generation against any JSON schema; used by kernel agents. */
+  async generate(messages: ChatMessage[], schema: object, signal: AbortSignal) {
     if (!this.engine) throw new Error('Load the model before sending a message.');
     const started = performance.now();
     const interrupt = () => this.interrupt();
@@ -52,7 +56,7 @@ export class BrowserModel implements Model {
         max_tokens: 380,
         response_format: {
           type: 'json_object',
-          schema: JSON.stringify(schemaForTools(allowedTools, orderIds)),
+          schema: JSON.stringify(schema),
         },
       });
       signal.throwIfAborted();
@@ -86,17 +90,23 @@ export class ServerModel implements Model {
   interrupt() {
     /* fetch is cancelled by the caller's AbortSignal */
   }
-  async complete(
+  complete(
     messages: ChatMessage[],
     signal: AbortSignal,
     allowedTools: Action['tool'][],
     orderIds: string[],
   ) {
+    return this.post('/api/live/complete', { messages, allowedTools, orderIds }, signal);
+  }
+  generate(messages: ChatMessage[], schema: object, signal: AbortSignal) {
+    return this.post('/api/live/generate', { messages, schema }, signal);
+  }
+  private async post(path: string, body: unknown, signal: AbortSignal) {
     const started = performance.now();
-    const response = await fetch('/api/live/complete', {
+    const response = await fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, allowedTools, orderIds }),
+      body: JSON.stringify(body),
       signal,
     });
     const data = await response.json();

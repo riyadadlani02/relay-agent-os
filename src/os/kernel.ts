@@ -49,6 +49,28 @@ export interface Syscall<W, A = any> {
   describe(args: A, world: W): string;
   policy?(args: A, world: W): PolicyDecision;
   run(args: A, world: W, context: CallContext): unknown;
+  /** One-line description offered to model-driven programs. */
+  summary?: string;
+  /** Argument fields that name a resource, mapped to its prefix, e.g. `{ orderId: 'order:' }`. */
+  argResources?: Record<string, string>;
+}
+export interface SyscallInfo {
+  name: string;
+  effect: 'read' | 'write';
+  summary: string;
+  /** JSON Schema of the arguments. */
+  args: Record<string, unknown>;
+  argResources: Record<string, string>;
+}
+/** What a process may know about itself: its own authority, the syscall table and its quota. */
+export interface ProcessView {
+  pid: number;
+  ppid: number | null;
+  owner: string;
+  capabilities: { id: string; rights: string[]; resource: string; uses: number | null }[];
+  syscalls: SyscallInfo[];
+  budget: { steps: number; tokens: number };
+  mailbox: number;
 }
 
 export type Outcome =
@@ -60,7 +82,12 @@ export type Proposal =
 export interface Program<M = any> {
   name: string;
   init(arg: unknown): M;
-  step(input: { pid: number; memory: M; last?: Outcome }): Proposal | Promise<Proposal>;
+  step(input: {
+    pid: number;
+    memory: M;
+    last?: Outcome;
+    view: ProcessView;
+  }): Proposal | Promise<Proposal>;
 }
 
 export interface Envelope {
@@ -179,6 +206,7 @@ export class RelayKernel<W> {
   requests: HumanRequest[] = [];
   journal: JournalEntry[] = [];
   private syscalls = new Map<string, Syscall<W>>();
+  private syscallInfo: SyscallInfo[] = [];
   private programs = new Map<string, Program>();
   private ids = { pid: 0, cap: 0, request: 0 };
   private stepping = false;
@@ -191,6 +219,14 @@ export class RelayKernel<W> {
       if (BUILTINS.includes(spec.name) || this.syscalls.has(spec.name))
         throw new KernelError(`Syscall ${spec.name} is already defined.`);
       this.syscalls.set(spec.name, spec);
+      const { $schema: _, ...args } = z.toJSONSchema(spec.args) as Record<string, unknown>;
+      this.syscallInfo.push({
+        name: spec.name,
+        effect: spec.effect,
+        summary: spec.summary ?? spec.name,
+        args,
+        argResources: spec.argResources ?? {},
+      });
     }
     for (const program of options.programs) this.programs.set(program.name, program);
   }
@@ -298,13 +334,47 @@ export class RelayKernel<W> {
     );
   }
 
+  private held(pid: number) {
+    return this.capabilities
+      .filter((c) => c.holder === this.holder(pid) && isLive(this.capabilities, c, this.tick))
+      .map(({ id, rights, resource, uses, expiresAt }) => ({
+        id,
+        rights,
+        resource,
+        uses,
+        expiresAt,
+      }));
+  }
+
+  /** A detached copy, so a program cannot reach kernel state through what it is shown. */
+  view(p: Process): ProcessView {
+    return structuredClone({
+      pid: p.pid,
+      ppid: p.ppid,
+      owner: p.owner,
+      capabilities: this.held(p.pid).map(({ id, rights, resource, uses }) => ({
+        id,
+        rights,
+        resource,
+        uses,
+      })),
+      syscalls: this.syscallInfo,
+      budget: p.budget,
+      mailbox: p.mailbox.length,
+    });
+  }
+
   /** Runs one scheduling quantum: one proposal from the highest-priority, least-recent process. */
+  /** The process the scheduler would run next: highest priority, then least recently run. */
+  peek(): Process | undefined {
+    return this.processes
+      .filter((p) => p.state === 'ready')
+      .sort((a, b) => b.priority - a.priority || a.scheduledAt - b.scheduledAt || a.pid - b.pid)[0];
+  }
+
   async step(): Promise<StepRecord | null> {
     if (this.stepping) throw new KernelError('A step is already running.');
-    const ready = this.processes
-      .filter((p) => p.state === 'ready')
-      .sort((a, b) => b.priority - a.priority || a.scheduledAt - b.scheduledAt || a.pid - b.pid);
-    const p = ready[0];
+    const p = this.peek();
     if (!p) return null;
     this.stepping = true;
     try {
@@ -327,7 +397,9 @@ export class RelayKernel<W> {
       p.last = undefined;
       let raw: unknown;
       try {
-        raw = await this.programs.get(p.program)!.step({ pid: p.pid, memory: p.memory, last });
+        raw = await this.programs
+          .get(p.program)!
+          .step({ pid: p.pid, memory: p.memory, last, view: this.view(p) });
       } catch (error) {
         this.exit(
           p,
@@ -343,6 +415,18 @@ export class RelayKernel<W> {
         this.log('proposal.discarded', p.pid, { reason: `Process is ${p.state}.` });
         return { ...record, proposal: '—', result: 'discarded' };
       }
+      // Tokens were spent even when the output turns out to be unusable.
+      const reported = (raw as { tokens?: unknown } | null)?.tokens;
+      const tokens =
+        typeof reported === 'number' && Number.isSafeInteger(reported) && reported > 0
+          ? reported
+          : 0;
+      p.used.tokens += tokens;
+      p.budget.tokens -= tokens;
+      if (p.budget.tokens < 0) {
+        this.exit(p, 'budget', undefined, 'Token budget exhausted; the last proposal did not run.');
+        return { ...record, proposal: '—', result: 'killed: token budget exhausted' };
+      }
       const parsed = proposalSchema.safeParse(raw);
       if (!parsed.success) {
         p.last = { call: '?', ok: false, errno: 'EINVAL', message: 'Malformed proposal.' };
@@ -351,18 +435,6 @@ export class RelayKernel<W> {
       }
       const proposal = parsed.data;
       record.note = proposal.note;
-      const tokens =
-        Number.isSafeInteger(proposal.tokens) && proposal.tokens! > 0 ? proposal.tokens! : 0;
-      p.used.tokens += tokens;
-      p.budget.tokens -= tokens;
-      if (p.budget.tokens < 0) {
-        this.exit(p, 'budget', undefined, 'Token budget exhausted; the last proposal did not run.');
-        return {
-          ...record,
-          proposal: 'call' in proposal ? proposal.call : 'exit',
-          result: 'killed: token budget exhausted',
-        };
-      }
       if ('exit' in proposal) {
         this.exit(p, 'ok', proposal.exit);
         return { ...record, proposal: 'exit', result: 'exited' };
@@ -396,15 +468,7 @@ export class RelayKernel<W> {
     if (call === 'ipc.send') return this.ipcSend(p, rawArgs);
     if (call === 'ipc.recv') return this.ipcRecv(p);
     if (call === 'cap.list') {
-      const value = this.capabilities
-        .filter((c) => c.holder === this.holder(p.pid) && isLive(this.capabilities, c, this.tick))
-        .map(({ id, rights, resource, uses, expiresAt }) => ({
-          id,
-          rights,
-          resource,
-          uses,
-          expiresAt,
-        }));
+      const value = this.held(p.pid);
       p.last = { call, ok: true, value };
       return;
     }
