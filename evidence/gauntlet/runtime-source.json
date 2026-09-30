@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-30T11:42:22.578Z",
-  "sourceBaseCommit": "6e23ff6e0388e1842f784676aebc181facbfe343",
+  "generatedAt": "2026-09-30T11:44:13.021Z",
+  "sourceBaseCommit": "8d528432ef0d91dea44089f194570963d47256d7",
   "sourceFilesSha256": {
     "src/playground/kernel.ts": "84107e6902ccdea56d1a3108156505722fc02acc144c0e0212b54397908a1cf5",
     "src/playground/domain.ts": "0c2cb7091e9d7f0cad8362b5cbe39e2cc8ae905eb8402f217eebee0d4e792d01",
