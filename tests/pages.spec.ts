@@ -112,6 +112,31 @@ test('live playground is responsive and accessible before model loading', async 
 test('evidence deep link lands on measured results after the lazy page loads', async ({ page }) => {
   await page.goto('./#evidence');
   await expect(page.getByRole('heading', { name: 'Test the boundary.' })).toBeInViewport();
+  await expect(
+    page.getByRole('heading', { name: 'The Relay Gauntlet', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.gauntlet-evidence table')).toContainText('gpt-4.1-mini');
+  await page.getByText('Earlier pilot: 240 runs, 190 distinct requests', { exact: true }).click();
   await expect(page.locator('.evidence-metrics')).toContainText('236/240 matched');
-  await expect(page.locator('.evidence-caveat')).toContainText('190 distinct strings');
+  await expect(page.locator('.pilot-evidence .evidence-caveat')).toContainText(
+    '190 distinct strings',
+  );
+});
+
+test('Gauntlet runner exposes resumable local evaluation and is accessible', async ({ page }) => {
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto('./?gauntlet=1');
+    await expect(page.getByRole('heading', { name: 'Try to break the boundary.' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Run / resume Qwen' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Stop after this case' })).toBeDisabled();
+    await page.getByLabel('Time per batch').selectOption('2');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    expect(
+      (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+        .violations,
+    ).toEqual([]);
+  }
 });

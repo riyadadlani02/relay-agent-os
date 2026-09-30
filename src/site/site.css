@@ -2911,3 +2911,65 @@ body {
     gap: 18px;
   }
 }
+
+.gauntlet-proof {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid #4a553e;
+  background: #e9ecdc;
+  color: #283222;
+  text-decoration: none;
+}
+.gauntlet-proof strong {
+  font-size: 18px;
+}
+.gauntlet-proof span {
+  font:
+    11px/1.5 'Space Mono',
+    monospace;
+}
+.gauntlet-evidence {
+  margin-top: 36px;
+}
+.gauntlet-evidence h3 {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(28px, 4vw, 46px);
+  font-weight: 400;
+  margin-bottom: 16px;
+}
+.gauntlet-evidence > p {
+  max-width: 900px;
+  line-height: 1.7;
+}
+.gauntlet-evidence table {
+  margin: 26px 0;
+}
+.matrix-status {
+  display: block;
+  font-weight: 400;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+.matrix-note {
+  font-size: 12px;
+  padding: 12px 16px;
+  background: #e8ebdd;
+}
+.pilot-evidence {
+  margin-top: 32px;
+}
+@media (max-width: 650px) {
+  .gauntlet-proof {
+    align-items: start;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+  }
+  .gauntlet-proof strong {
+    font-size: 15px;
+  }
+}

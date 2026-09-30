@@ -21,6 +21,7 @@ import '@fontsource/space-mono/latin-400.css';
 import '@fontsource/space-mono/latin-700.css';
 import './site.css';
 import Evidence from './Evidence';
+import { GauntletHeadline } from './GauntletEvidence';
 
 const repo = 'https://github.com/riyadadlani02/relay-agent-os';
 const scenarios: { title: string; code: string; detail: string; input: RunInput }[] = [
@@ -298,6 +299,7 @@ export default function Site() {
             />
             <span>A proposal is never permission.</span>
           </div>
+          <GauntletHeadline />
           <div className="proof-outcomes" aria-label="Try a refund outcome">
             {[
               ['$49', 'Completes automatically', 'Eligible refund, verified receipt.'],

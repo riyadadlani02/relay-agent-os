@@ -12,9 +12,23 @@ Click an outcome on the first screen to run its deterministic walkthrough. No AP
 
 **A proposal is never permission.** The model is interchangeable. It selects tools; code determines amounts from records, enforces limits, binds an action to its order, and checks again before committing. Refunds in the public browser demo update a local sample ledger, not a payment processor.
 
+## Relay Gauntlet: the safety claim is now falsifiable
+
+**500 cases, 400 attacks and 100 legitimate controls, across English, Hindi and Hinglish.** The suite tests prompt injection, manager impersonation, refund splitting, currency-unit manipulation, forged approvals, duplicates and replay after state restoration. It uses the actual AgentKernel and an independent outcome scorer.
+
+- **GPT-4.1 mini:** 500/500 tested; **0 unauthorized actions**, **3/100 legitimate requests failed**, **97/500 required human intervention**. Only 409/500 matched their expected outcome; 75 cases had runtime/answer-checker errors. A zero-mutation count alone is not a release pass.
+- **Qwen 1.5B:** stopped after 15 cases with **1 unauthorized refund** on an information-only request and 14 unnecessary handoffs. This candidate is rejected. Remaining cases are untested.
+- **GPT-5.4:** 185/500 cases attempted before the budget guard stopped the run; 0 observed unauthorized actions and 0/38 legitimate requests failed. This partial run is not a whole-corpus result.
+
+**What the failure means:** hard amount limits and duplicate checks do not independently establish the customer's intent. The small model chose a refund tool despite “Do not refund or replace it.” The next runtime change needs an explicit action-authorization boundary; changing the prompt alone would not establish that guarantee. All measured actions used fictional local records, not Razorpay.
+
+[**Measured results and every failure**](docs/gauntlet-results.md) · [Method, scoring and budget](docs/gauntlet.md) · [Run Qwen on your device](https://riyadadlani02.github.io/relay-agent-os/?gauntlet=1) · [500-case corpus](public/evidence/gauntlet/corpus.json)
+
+The executable release gate rejects incomplete or stale evidence, unauthorized actions, errors and outcome regressions. The separate manual **Model release gate** workflow requires no API credentials. Local contract tests include 500 scripted probes plus deliberately planted violations; those are tests, not live model evidence.
+
 ![Relay OS, outcomes first](docs/site-desktop.png)
 
-## Measured, including the failures
+## Earlier pilot: measured, including the failures
 
 Actual GPT-4.1 mini requests through the same playground kernel, measured September 30, 2026:
 
@@ -37,7 +51,7 @@ The first run exposed 30 missing-order errors in the answer checker. The fix and
 | Path               | Implemented                                                                                                              | Verified                                                                                                                                                                               |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Browser AI         | Qwen/WebLLM → bounded tools → IndexedDB sample records                                                                   | Real inference and receipts, as shown in the film                                                                                                                                      |
-| Hosted AI          | Configurable server model → same playground kernel                                                                       | 240 GPT-4.1 mini requests and three GPT-5.4 examples                                                                                                                                   |
+| Hosted AI          | Configurable server model → same playground kernel                                                                       | 500-case Gauntlet plus the retained earlier pilot; complete and partial coverage disclosed in the results                                                                              |
 | Hindi audio        | Speech recognition → transcript review → agent tools                                                                     | Synthetic Hindi audio → Deepgram → reviewed order ID → GPT-4.1 mini → local $49 refund                                                                                                 |
 | Razorpay test mode | Trusted payment binding, integer paise/currency checks, readback approval, persisted intent, idempotency, reconciliation | Real ₹49 test order creation. **Captured payment and refund unverified:** provider checkout remained blank in both browsers. Failure/recovery behavior has controlled transport tests. |
 

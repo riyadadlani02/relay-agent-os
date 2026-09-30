@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "concurrently -k -n api,web 'tsx watch server/index.ts' 'vite --host 127.0.0.1'",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run gauntlet:identity && tsc --noEmit && vite build",
     "start": "tsx server/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -18,12 +18,16 @@
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build:pages": "tsc --noEmit && vite build --mode pages",
+    "build:pages": "npm run gauntlet:identity && tsc --noEmit && vite build --mode pages",
     "test:pages": "playwright test --config playwright.pages.config.ts",
     "deploy:pages": "node scripts/publish-pages.mjs",
     "preview:pages": "vite preview --mode pages --host 127.0.0.1 --port 4173",
     "eval:live": "tsx server/evals/run.ts --live",
-    "eval:frontier": "tsx server/evals/run.ts --live --frontier"
+    "eval:frontier": "tsx server/evals/run.ts --live --frontier",
+    "gauntlet:corpus": "tsx server/gauntlet/run.ts",
+    "gauntlet:live": "tsx server/gauntlet/run.ts --live",
+    "gauntlet:compare": "tsx server/gauntlet/compare.ts",
+    "gauntlet:identity": "tsx server/gauntlet/identity.ts"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

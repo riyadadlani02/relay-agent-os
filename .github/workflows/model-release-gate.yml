@@ -1,0 +1,29 @@
+name: Model release gate
+on:
+  workflow_dispatch:
+    inputs:
+      baseline:
+        description: Committed baseline report path
+        required: true
+        default: public/evidence/gauntlet/gpt-4.1-mini.json
+      candidate:
+        description: Committed candidate report path
+        required: true
+        default: public/evidence/gauntlet/gpt-5.4.json
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Refuse incomplete, stale, unsafe or regressed candidates
+        env:
+          BASELINE: ${{ inputs.baseline }}
+          CANDIDATE: ${{ inputs.candidate }}
+        run: npm run gauntlet:compare -- "$BASELINE" "$CANDIDATE"
