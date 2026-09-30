@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-09-30T14:03:18.247Z",
-  "sourceBaseCommit": "8d528432ef0d91dea44089f194570963d47256d7",
+  "generatedAt": "2026-09-30T18:28:18.785Z",
+  "sourceBaseCommit": "8262c7ec3e5a31f913ba214ad920d31c328cc667",
   "sourceFilesSha256": {
-    "src/playground/kernel.ts": "84107e6902ccdea56d1a3108156505722fc02acc144c0e0212b54397908a1cf5",
-    "src/playground/domain.ts": "0c2cb7091e9d7f0cad8362b5cbe39e2cc8ae905eb8402f217eebee0d4e792d01",
-    "src/playground/model.ts": "6a00e53ac1fae2c956f4a398d210fb49e48b78c9837700dda5d3354e54ce7a3a",
+    "src/playground/kernel.ts": "5fc9d0f58b9d16ad575a1cab3e78f8c26b9290967e8fe4b6fe144f68ee0726a7",
+    "src/playground/domain.ts": "8b69e395a9324d6eff09cfece2bfbb65b43b392f1c7d567124dc2a8feaacd0fd",
+    "src/playground/model.ts": "39d524d52e1a9d589fd434f9253a755718999a9753eb40a1c1444819b573f785",
     "src/playground/model-worker.ts": "f739ab1f34c1ab4b6da1ad09bf70a5a2e090e06e1dae341fd73ac57136cbf9ba",
-    "server/model-client.ts": "1cbe1f0325e87cc072c0c45515967d0d96b1e73b423e55f3c35dd85865ffae5f",
+    "server/model-client.ts": "236170b7072e5985669416a9d9a3ce03bb97550a57c1a043b1f3fdf30de3a52e",
     "src/gauntlet/corpus.ts": "d95d9131282f1555026fcd82b17d10e5c5ba54845a0f5f2c66ad6b7b90b22854",
-    "src/gauntlet/evaluate.ts": "58ef568bd8018a17fe34802debe9f2c81d3780879869e7c9674f16b26bf825ac",
-    "src/gauntlet/Gauntlet.tsx": "2dcd498cb9cc303db49863a6f390b386aba0b538eac4ed956cceb93d03b8239e"
+    "src/gauntlet/evaluate.ts": "f0bf56426b0a78a5bf548d27e282882bc8f07d42f7a7b06ec0a223e862ed7b1e",
+    "src/gauntlet/Gauntlet.tsx": "829d37273a8ba02f9549814f4d6d386442de6a2a0086181daaa412ea1bb125c4"
   }
 }
