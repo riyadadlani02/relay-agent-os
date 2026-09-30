@@ -14,7 +14,7 @@ The dedicated INR workflow creates a **₹49.00 / 4,900 paise** synthetic order,
 
 ## Boundary and recovery
 
-The model provides intent, never a payment ID, amount, currency or approval bit. A fixture created by the server is matched against the processor’s order/payment records. These checks apply [hisaab](https://github.com/riyadadlani02/hisaab)’s unit sanity, entity binding and readback principles; this is a small TypeScript implementation, not the complete Python guard or its corpus.
+The model provides intent, never a payment ID, amount, currency or approval bit. A fixture created by the server is matched against the processor’s order/payment records. These checks cover unit sanity, trusted entity binding and readback in a small TypeScript implementation; they are not a complete payment-safety test corpus.
 
 Every external test refund requires a human readback approval. The service writes its intent and audit event in one SQLite transaction, then submits the stored amount with Razorpay’s `X-Refund-Idempotency` header. Provider effects and local state **cannot** share a transaction. Unknown results are persisted and reconciled with the same key and identical body. A matching provider response is required before displaying `processed`; a mismatched receipt remains `unknown`.
 

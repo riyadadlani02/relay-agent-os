@@ -18,7 +18,7 @@ export interface Intent {
   approved: boolean;
   refundId?: string;
 }
-// These checks apply hisaab's unit sanity, trusted entity binding and terminal-action readback.
+// Unit sanity, trusted entity binding and terminal-action readback.
 export function assertPayment(binding: Binding, payment: Payment, allowRefunded = false) {
   if (payment.id !== binding.paymentId || payment.order_id !== binding.providerOrderId)
     throw Error('Payment is not bound to this order.');

@@ -70,7 +70,7 @@ The first run exposed 30 missing-order errors in the answer checker. The fix and
 | Hindi audio        | Speech recognition → transcript review → agent tools                                                                     | Synthetic Hindi audio → Deepgram → reviewed order ID → GPT-4.1 mini → local $49 refund                                                                                                 |
 | Razorpay test mode | Trusted payment binding, integer paise/currency checks, readback approval, persisted intent, idempotency, reconciliation | Real ₹49 test order creation. **Captured payment and refund unverified:** provider checkout remained blank in both browsers. Failure/recovery behavior has controlled transport tests. |
 
-The voice path is not a deployed phone line. It applies lessons from [asli](https://github.com/riyadadlani02/asli) and uses the speech-provider approach from EMMA; it does not embed their complete runtimes. The payment guard applies [hisaab](https://github.com/riyadadlani02/hisaab)'s unit sanity, entity binding and readback principles in TypeScript. The INR integration is separate from the public USD sample ledger—there is no implicit currency conversion.
+The voice path is not a deployed phone line: a speaker explicitly finishes and reviews each transcript before it reaches the agent. The payment guard checks integer minor units and currency, binds every payment to a trusted record, and reads the provider's state back before a terminal action. The INR integration is separate from the public USD sample ledger—there is no implicit currency conversion.
 
 [Voice sample, raw recognition and trace](docs/voice.md) · [Payment connector and evidence](docs/payments.md)
 

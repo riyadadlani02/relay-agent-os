@@ -14,9 +14,9 @@ The model chooses from a small tool contract. The runtime reads the order, retri
 
 The SQLite runtime commits each **local** effect with its audit event and checkpoint. Browser sessions use IndexedDB. An external processor cannot join either transaction, so the Razorpay connector first persists a refund intent, then sends its fixed amount with a stable provider idempotency key. A lost response becomes `unknown`, not “failed”; reconciliation uses that same intent.
 
-I applied hisaab’s trusted entity binding, integer minor-unit checks, currency checks and terminal-action readback. Identifiers come from an order created by this server and subsequently verified from Razorpay, never from a payment ID buried in a model response or customer note.
+The connector applies trusted entity binding, integer minor-unit checks, currency checks and terminal-action readback. Identifiers come from an order created by this server and subsequently verified from Razorpay, never from a payment ID buried in a model response or customer note.
 
-Voice follows a lesson from asli: a pause is not reliable permission to end a caller’s thought. Browser capture waits for an explicit finish/review step. The local Deepgram path uses the same provider family as EMMA. A synthetic Hindi request was transcribed and passed into Relay after reviewing its order ID. This is an audio-to-action path; it is not a deployed phone line or an integration of asli’s calibrated turn detector.
+Voice treats a pause as unreliable permission to end a caller’s thought, so browser capture waits for an explicit finish/review step. The local path uses Deepgram recognition. A synthetic Hindi request was transcribed and passed into Relay after reviewing its order ID. This is an audio-to-action path; it is not a deployed phone line or a calibrated turn detector.
 
 ## What I chose not to automate
 

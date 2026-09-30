@@ -17,7 +17,7 @@ Recognition returned “नमस्ते. मेरा order R1042 वाप�
 
 Set `DEEPGRAM_API_KEY` in the ignored local `.env`, run `npm run dev`, and open `/?playground=1`. The voice panel offers audio-file transcription through the server. The endpoint accepts common audio MIME types up to 4 MB and sends the bytes to Deepgram; keys stay on the server. Use synthetic recordings for this prototype.
 
-The server adapter is [`server/voice.ts`](../server/voice.ts). Its use of Nova-3 follows [EMMA’s speech-provider boundary](https://github.com/riyadadlani02/EmmaLiveKit) conceptually; Relay does not import the EMMA telephony runtime. The explicit completion/review design is informed by [asli’s turn-boundary findings](https://github.com/riyadadlani02/asli), not a claim that its calibrated detector has been deployed here.
+The server adapter is [`server/voice.ts`](../server/voice.ts). It uses Deepgram Nova-3 behind a server-side boundary, so the key never reaches the browser; there is no telephony runtime. The explicit completion/review design reflects that a pause is not reliable evidence a speaker has finished. No calibrated turn detector is deployed here.
 
 This is **not a phone call demo**, telephony service, barge-in benchmark or streaming endpointing evaluation. No microphone recording was performed on the user’s device during verification. The synthetic audio test exercises recognition, review and model execution; real microphone quality depends on browser, permissions and environment.
 

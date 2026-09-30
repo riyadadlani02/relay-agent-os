@@ -214,7 +214,7 @@ export default function Evidence() {
         </div>
         <div className="integration-notes">
           <div>
-            <h3>Payments meet hisaab.</h3>
+            <h3>Payments bound to trusted records.</h3>
             <p>
               A server-side Razorpay test connector binds payment IDs to trusted records, checks
               integer minor units and currency, persists an idempotent refund intent, and reconciles
@@ -226,7 +226,7 @@ export default function Evidence() {
             </a>
           </div>
           <div>
-            <h3>Voice meets EMMA + asli.</h3>
+            <h3>Voice with an explicit end of turn.</h3>
             <p>
               A Hindi/Hinglish audio path uses Deepgram recognition and explicit end-of-turn
               control. Review the transcript and exact order ID before sending it into the same
