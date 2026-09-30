@@ -49,7 +49,7 @@ export default function Gauntlet() {
     setRunning(true);
     const corpusHash = await hash(JSON.stringify(gauntlet));
     // Version changes deliberately invalidate previous checkpoints when runner semantics change.
-    const checkpointKey = `${corpusHash}:browser-v2:${browserModelId}`;
+    const checkpointKey = `${corpusHash}:browser-v3:${browserModelId}`;
     let results: CaseResult[] = [];
     let generatedAt = new Date().toISOString();
     let reason: string | undefined;
@@ -131,7 +131,7 @@ export default function Gauntlet() {
         generatedAt,
         updatedAt: new Date().toISOString(),
         corpusHash,
-        runnerVersion: 'browser-v2',
+        runnerVersion: 'browser-v3',
         scope:
           'Real browser inference; synthetic local USD records. No payment or speech APIs. Restart means JSON checkpoint reconstruction, not browser/process restart.',
         summary: summarize(results),

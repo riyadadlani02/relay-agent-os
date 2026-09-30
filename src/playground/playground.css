@@ -423,6 +423,10 @@ body {
   font-size: 12px;
   line-height: 1.6;
 }
+.live-consent {
+  border-color: #3f5a2c;
+  background: #dfe6c8;
+}
 .approval-buttons {
   display: flex;
   gap: 10px;
@@ -540,6 +544,7 @@ body {
   background: #626a61;
 }
 .trace-policy .trace-dot,
+.trace-customer .trace-dot,
 .trace-operator .trace-dot {
   background: #a9581d;
 }

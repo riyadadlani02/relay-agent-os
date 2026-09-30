@@ -140,3 +140,36 @@ test('Gauntlet runner exposes resumable local evaluation and is accessible', asy
     ).toEqual([]);
   }
 });
+
+test('kernel console mediates four customers and exposes journal tampering', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('./?os=1');
+  await expect(
+    page.getByRole('heading', { name: 'A proposal is never permission.' }),
+  ).toBeVisible();
+  const run = page.getByRole('button', { name: 'Run until a person is needed' });
+  await run.click();
+  await expect(page.getByText('Refund $49.00 for R-1042 (Studio cable)')).toBeVisible();
+  // Carol's injected worker was confined without anyone being asked.
+  await expect(page.getByText('carol: confirm?')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Confirm as alice' }).click();
+  await page.getByRole('button', { name: 'Confirm as bob' }).click();
+  await run.click();
+  await page.getByRole('button', { name: 'Approve', exact: true }).click();
+  await run.click();
+  await expect(page.getByText('2 receipts · 1 support tickets', { exact: false })).toBeVisible();
+  await expect(page.getByText(/chain verified/)).toBeVisible();
+  await page.getByRole('button', { name: 'Change a refund in the log to $0.01' }).click();
+  await expect(
+    page.getByText(/broken at #\d+: Entry contents do not match their hash/),
+  ).toBeVisible();
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(results.violations).toEqual([]);
+  await page.setViewportSize({ width: 390, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});

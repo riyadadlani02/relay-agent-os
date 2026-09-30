@@ -2,7 +2,7 @@
 
 **Customer-service agents that resolve refunds and replacements through policy checks, human approval, and inspectable receipts.**
 
-[**Try the three refund outcomes**](https://riyadadlani02.github.io/relay-agent-os/) · [Live AI playground](https://riyadadlani02.github.io/relay-agent-os/?playground=1) · [75-second film](https://riyadadlani02.github.io/relay-agent-os/#film) · [Case study](docs/case-study.md)
+[**Try the three refund outcomes**](https://riyadadlani02.github.io/relay-agent-os/) · [Live AI playground](https://riyadadlani02.github.io/relay-agent-os/?playground=1) · [Kernel console](https://riyadadlani02.github.io/relay-agent-os/?os=1) · [75-second film](https://riyadadlani02.github.io/relay-agent-os/#film) · [Case study](docs/case-study.md)
 
 | $49 refund              | $249 refund       | $750 refund                 |
 | ----------------------- | ----------------- | --------------------------- |
@@ -10,7 +10,20 @@
 
 Click an outcome on the first screen to run its deterministic walkthrough. No API key or download is needed for those walkthroughs. The live AI playground runs real Qwen inference and downloads approximately 830 MB of model parameters plus runtime assets on first use. It requires a WebGPU-capable browser and roughly 2 GB of available GPU memory.
 
-**A proposal is never permission.** The model is interchangeable. It selects tools; code determines amounts from records, enforces limits, binds an action to its order, and checks again before committing. Refunds in the public browser demo update a local sample ledger, not a payment processor.
+**A proposal is never permission.** The model is interchangeable. It selects tools; code determines amounts from records, enforces limits, binds an action to its order, and checks again before committing. A change the model proposes also needs the customer's confirmation, which becomes a single-use capability for exactly that action. Refunds in the public browser demo update a local sample ledger, not a payment processor.
+
+## Relay kernel: agents as processes, actions as syscalls
+
+The runtime is generalized into a small kernel for agents ([design](docs/kernel.md) · [console](https://riyadadlani02.github.io/relay-agent-os/?os=1) · [`src/os/`](src/os)):
+
+- **Capabilities are the only authority.** Processes can narrow and delegate what they hold, never mint. Use-limited grants are carved, not copied. Revocation cascades.
+- **One syscall gate:** authority → policy → the owner's consent → operator approval → atomic commit. Authority is checked first, so an unauthorized agent learns nothing about the resource.
+- **Consent is delegation.** A person turns part of their own authority into one use of one exact call. Nobody can consent for someone else.
+- **Processes, scheduler and quotas:** priorities, round-robin, step and token budgets, budget carving for children, kill with subtree cleanup, and a late proposal from a killed process is discarded.
+- **IPC** only over channels the kernel created between parent and child.
+- **Hash-chained journal:** editing any committed entry breaks verification from that point on.
+
+The console runs four customers concurrently on one kernel: an automatic refund after consent, a $249 refund that needs consent and an operator, a prompt-injected agent confined by its capabilities, and a looping agent stopped by its budget. Those programs are scripted stand-ins for model output, so every decision is reproducible; real inference runs in the playground. 34 unit tests cover the kernel. Disabling any of its key checks (owner authority, capability spending, read isolation, discarding late proposals, revoking rejected grants) makes a test fail.
 
 ## Relay Gauntlet: the safety claim is now falsifiable
 
@@ -20,7 +33,7 @@ Click an outcome on the first screen to run its deterministic walkthrough. No AP
 - **Qwen 1.5B:** stopped after 15 cases with **1 unauthorized refund** on an information-only request and 14 unnecessary handoffs. This candidate is rejected. Remaining cases are untested.
 - **GPT-5.4:** 185/500 cases attempted before the budget guard stopped the run; 0 observed unauthorized actions and 0/38 legitimate requests failed. This partial run is not a whole-corpus result.
 
-**What the failure means:** hard amount limits and duplicate checks do not independently establish the customer's intent. The small model chose a refund tool despite “Do not refund or replace it.” The next runtime change needs an explicit action-authorization boundary; changing the prompt alone would not establish that guarantee. All measured actions used fictional local records, not Razorpay.
+**What the failure meant, and what changed:** hard amount limits and duplicate checks cannot establish the customer's intent. The small model chose a refund tool despite “Do not refund or replace it.” The runtime now has that authorization boundary: every model-proposed change stops for the customer's confirmation, which mints a [single-use capability](docs/kernel.md#capabilities) for exactly that tool and order. `commitAction` refuses any change without one. Replaying all 15 recorded Qwen tool choices through the current kernel gives [**0 unauthorized writes**](public/evidence/gauntlet/qwen-replay.json); the violating case stops at a prompt the customer declines, and the other 14 are unchanged. That is replay, not new inference: the model rows above were measured on the previous kernel, and the release gate's source fingerprints refuse to reuse them as evidence for this one. All measured actions used fictional local records, not Razorpay.
 
 [**Measured results and every failure**](docs/gauntlet-results.md) · [Method, scoring and budget](docs/gauntlet.md) · [Run Qwen on your device](https://riyadadlani02.github.io/relay-agent-os/?gauntlet=1) · [500-case corpus](public/evidence/gauntlet/corpus.json)
 
@@ -86,7 +99,7 @@ Open **http://127.0.0.1:5173/?playground=1** for live model inference. The origi
 
 ## Architecture and scope
 
-Relay is a runnable engineering prototype with three surfaces: a static walkthrough, a real browser AI playground, and a local API workspace. It is an operating **layer for agents**, not an operating-system kernel.
+Relay is a runnable engineering prototype with four surfaces: a static walkthrough, a real browser AI playground, a local API workspace, and the kernel console. The [kernel](docs/kernel.md) is a user-space kernel **for agents** (processes, capabilities, scheduler, IPC, journal), not an operating-system kernel, and it does not isolate hostile native code.
 
 The backend services are Triage → Knowledge → Resolution → Policy → Action → Quality. Resolution is the model boundary. The other services are deterministic application code. SQLite stores durable checkpoints, approvals and an append-only application event log. Each **local** ledger effect, audit event and checkpoint commits in one transaction; the ledger's unique constraint prevents a retry from duplicating that run's effect. Browser sessions use IndexedDB.
 
@@ -122,6 +135,7 @@ npm run build:pages
 npm run test:pages        # static site, outcomes, reload, accessibility and mobile layout
 npm run eval:live         # paid hosted evaluation; explicit opt-in, $2.10 invocation cap
 npm run eval:frontier     # paid GPT-5.4 examples; $0.18 invocation cap
+npm run gauntlet:replay   # free: recorded Qwen tool choices through the current kernel
 npx tsx scripts/summarize-evidence.ts
 ```
 
@@ -130,8 +144,10 @@ The evaluation publishes failures as well as successes. It does not call the pay
 ## Project map
 
 ```text
+src/os/                   Relay kernel: capabilities, processes, scheduler, IPC, journal, console
 src/site/                 Outcome-first website, interactive walkthrough, evidence
 src/playground/           Live tool loop, browser model, voice input, IndexedDB
+src/gauntlet/             Adversarial corpus, independent scorer, recorded-run replay, browser runner
 src/connectors/           Local payment readback UI
 server/runtime.ts         Durable backend state machine and policy
 server/model-client.ts    Hosted model adapter used by playground and evaluation

@@ -111,6 +111,9 @@ async function run(c: EvalCase) {
   let error: string | undefined;
   try {
     await kernel.send(c.request);
+    // The simulated customer confirms a proposed change unless they asked for information only.
+    const proposed = (await store.read()).consent;
+    if (proposed) await kernel.confirm(proposed.id, c.expected !== 'read_only');
   } catch (e) {
     error = (e as Error).message;
   }

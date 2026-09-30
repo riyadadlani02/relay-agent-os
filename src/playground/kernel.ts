@@ -1,8 +1,11 @@
+import { revoke } from '../os/capability';
 import {
   actionSchema,
   checkAction,
   commitAction,
+  customerGrant,
   dollars,
+  grantConsent,
   searchPolicies,
   unsupportedNumbers,
   type Action,
@@ -26,6 +29,46 @@ respond: put your customer-facing answer or clarification in the reply field. Se
 For a policy question use knowledge.search then respond. For an order-status question use orders.lookup then respond. For a requested change, look up the order and policy, then request the action. Do not modify orders when the customer only asks a question.
 Order changes require an explicit order ID in the latest customer message. Otherwise look up the order, then ask the customer to include its ID to authorize a change.
 Do not repeat successful tools. Follow the latest tool result. Never say an action succeeded without a receipt. If a policy blocks a request, explain the specific rule; do not silently substitute a different action. If an order is missing, ask for its ID. Keep replies to 2-4 sentences. Never expose internal reasoning. /no_think`;
+
+const describe = (action: Action, amountCents: number) =>
+  action.tool === 'refunds.request'
+    ? `${dollars(amountCents)} refund for ${action.orderId}`
+    : `replacement request for ${action.orderId}`;
+
+// Continues a customer-authorized action: operator review above the threshold, otherwise commit.
+// Runs inside a store transaction.
+function proceed(
+  s: Session,
+  action: Action,
+  check: ReturnType<typeof checkAction>,
+  capability: string,
+) {
+  if (check.decision === 'review') {
+    s.pending = {
+      id: crypto.randomUUID(),
+      action,
+      amountCents: check.amountCents,
+      createdAt: new Date().toISOString(),
+      capability,
+    };
+    s.messages.push({
+      id: crypto.randomUUID(),
+      role: 'system',
+      text: `Operator approval required: ${action.tool === 'refunds.request' ? 'refund' : 'replacement'} for ${action.orderId}. No change has been committed.`,
+    });
+    return { paused: true, output: { ...check, executed: false } as unknown };
+  }
+  const receipt = commitAction(s, action, false);
+  s.messages.push({
+    id: crypto.randomUUID(),
+    role: 'system',
+    text: `Verified: ${dollars(receipt.amountCents)} refund recorded for ${receipt.orderId}. Receipt ${receipt.id.slice(0, 8)}. Your demo order record has been updated; no real payment was made.`,
+  });
+  return {
+    paused: false,
+    output: { ...check, receipt, scope: 'Demo database only; no real payment.' } as unknown,
+  };
+}
 
 export class AgentKernel {
   private busy = false;
@@ -74,6 +117,7 @@ export class AgentKernel {
     try {
       const current = await this.store.read();
       if (current.pending) throw new Error('Approve or reject the pending action first.');
+      if (current.consent) throw new Error('Confirm or decline the proposed change first.');
       if (current.messages.length >= 60)
         throw new Error('This session has reached its conversation limit. Start a new session.');
       const session = await this.update((s) => {
@@ -313,9 +357,9 @@ export class AgentKernel {
           let policyMs = 0;
           await this.update((s) => {
             this.abort?.signal.throwIfAborted();
-            if (s.pending)
+            if (s.pending || s.consent)
               throw new Error(
-                'Another action is awaiting approval in this session. Resolve it first.',
+                'Another action is awaiting a decision in this session. Resolve it first.',
               );
             const policyStart = performance.now();
             const check = checkAction(action, s);
@@ -327,8 +371,13 @@ export class AgentKernel {
                 role: 'system',
                 text: `Action blocked for ${action.orderId}. ${check.explanation} No record was changed.`,
               });
-            } else if (check.decision === 'review') {
-              s.pending = {
+              return;
+            }
+            const grant = customerGrant(s, action);
+            if (!grant.ok) {
+              // The model selected this tool; that is a proposal, not permission. Only the
+              // customer can authorize a change to their order, one exact action at a time.
+              s.consent = {
                 id: crypto.randomUUID(),
                 action,
                 amountCents: check.amountCents,
@@ -337,23 +386,15 @@ export class AgentKernel {
               s.messages.push({
                 id: crypto.randomUUID(),
                 role: 'system',
-                text: `Operator approval required: ${action.tool === 'refunds.request' ? 'refund' : 'replacement'} for ${action.orderId}. No change has been committed.`,
+                text: `Customer confirmation required: ${describe(action, check.amountCents)}. No change has been committed.`,
               });
-              output = { ...check, executed: false };
+              output = { ...check, executed: false, awaiting: 'customer confirmation' };
               pending = true;
-            } else {
-              const receipt = commitAction(s, action, false);
-              output = {
-                ...check,
-                receipt,
-                scope: 'Demo database only; no real payment.',
-              };
-              s.messages.push({
-                id: crypto.randomUUID(),
-                role: 'system',
-                text: `Verified: ${dollars(receipt.amountCents)} refund recorded for ${receipt.orderId}. Receipt ${receipt.id.slice(0, 8)}. Your demo order record has been updated; no real payment was made.`,
-              });
+              return;
             }
+            const next = proceed(s, action, check, grant.capability.id);
+            output = next.output;
+            pending = next.paused;
           });
           await this.trace(
             'policy',
@@ -412,6 +453,54 @@ export class AgentKernel {
     }
   }
 
+  /**
+   * The customer answers a model-proposed change. Confirming mints a single-use capability for the
+   * exact stored action; the model is not consulted again, so it cannot alter what was confirmed.
+   */
+  async confirm(id: string, granted: boolean) {
+    if (this.busy) throw new Error('Wait for the current turn to finish.');
+    let output: unknown;
+    await this.update((s) => {
+      if (s.consent?.id !== id) throw new Error('This confirmation is no longer pending.');
+      const { action } = s.consent;
+      delete s.consent;
+      if (!granted) {
+        output = { granted, executed: false };
+        s.messages.push({
+          id: crypto.randomUUID(),
+          role: 'system',
+          text: `Customer declined the ${describe(action, s.orders.find((o) => o.id === action.orderId)?.amountCents ?? 0)}. No record was changed.`,
+        });
+        return;
+      }
+      const capability = grantConsent(s, action);
+      const check = checkAction(action, s);
+      const grant = {
+        capability: capability.id,
+        rights: capability.rights,
+        resource: capability.resource,
+        uses: 1,
+      };
+      if (check.decision === 'deny') {
+        revoke(s.capabilities!, capability.id);
+        output = { granted, grant, ...check, executed: false };
+        s.messages.push({
+          id: crypto.randomUUID(),
+          role: 'system',
+          text: `Action blocked for ${action.orderId}. ${check.explanation} No record was changed.`,
+        });
+        return;
+      }
+      output = { granted, grant, ...(proceed(s, action, check, capability.id).output as object) };
+    });
+    await this.trace(
+      'customer',
+      granted ? 'consent.granted' : 'consent.declined',
+      { consentId: id },
+      output,
+    );
+  }
+
   async decide(id: string, approved: boolean) {
     if (this.busy) throw new Error('Wait for the current turn to finish.');
     let output: unknown;
@@ -427,6 +516,7 @@ export class AgentKernel {
           text: `Operator approved. ${receipt.kind === 'refund' ? 'Refund' : 'Replacement request'} committed for ${receipt.orderId}. Receipt ${receipt.id.slice(0, 8)}. Demo records only.`,
         });
       } else {
+        if (pending.capability && s.capabilities) revoke(s.capabilities, pending.capability);
         output = { approved, executed: false };
         s.messages.push({
           id: crypto.randomUUID(),

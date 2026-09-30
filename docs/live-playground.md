@@ -13,9 +13,10 @@ flowchart LR
   Schema --> Read[Order lookup / policy retrieval]
   Read --> Model
   Schema --> Guard[Code-enforced policy]
-  Guard --> Review[Persisted operator approval]
-  Review --> Recheck[Recheck eligibility]
-  Guard --> Commit[IndexedDB transaction]
+  Guard --> Consent[Customer confirms: single-use capability]
+  Consent --> Review[Persisted operator approval]
+  Review --> Recheck[Recheck eligibility + capability]
+  Consent --> Commit[IndexedDB transaction]
   Recheck --> Commit
   Commit --> Receipt[Order update + receipt]
   Receipt --> Outcome[Verified transaction outcome]
@@ -46,6 +47,7 @@ The UI does not expose chain-of-thought. The visible evidence is actions and res
 - Explicit order IDs in the current message constrain the tool schema and runtime scope. When an ID is supplied, the generated orderId must be one of those IDs; empty IDs are excluded even on read and response tools. This prevents a model from repeatedly proposing an empty-target action. An order from a previous conversation turn cannot silently become the target of the current request. Information answers referencing a different explicit order are withheld.
 - A message without an explicit order ID is read-only: it cannot authorize a refund, replacement, or support ticket. The agent can look up records and ask for the ID before a change. Each retrieval tool gets one attempt per turn; a missing order must lead to clarification, not a lookup loop. Conversation context includes verified runtime outcomes, so completed requests do not appear as unanswered prior user messages.
 - A write requires an order lookup and policy retrieval during the current turn.
+- **A model-selected refund or replacement is only a proposal.** The customer confirms it through a UI control the model cannot write to. Confirming mints a single-use [capability](kernel.md#capabilities) bound to that tool and order; the runtime then continues the exact stored action without consulting the model again. `commitAction` refuses any change not covered by such a capability, even after operator approval, and an operator rejection revokes it. Policy is evaluated first, so nobody is asked to confirm something that would be blocked. This closes the Gauntlet's information-only failure, where a model refunded an order the customer had said not to touch.
 - Refund amount comes from the stored order, never from generated text or a user-provided amount.
 - Delivered within 30 days, not already resolved: up to $100 automatic, $100–$500 operator approval, above $500 denied.
 - Replacements always require approval. Approval is bound to the stored action ID and eligibility is rechecked inside the committing transaction.
@@ -72,11 +74,11 @@ MODEL_API_KEY=ollama
 
 ## Verification and limitations
 
-Unit tests use a model explicitly named “Test fixture (not AI)” to verify hard limits, missing prerequisites, approval replay/rejection, expiry recheck, duplicate refunds, cancellation, and competing IndexedDB transactions. Browser tests verify route styles, records, policy content, responsive layout, and automated accessibility. These tests do not download a model or claim to evaluate its linguistic quality.
+Unit tests use a model explicitly named “Test fixture (not AI)” to verify hard limits, missing prerequisites, customer confirmation and its single-use binding, approval replay/rejection, expiry recheck, duplicate refunds, cancellation, and competing IndexedDB transactions. Browser tests verify route styles, records, policy content, responsive layout, and automated accessibility. These tests do not download a model or claim to evaluate its linguistic quality.
 
-Real Qwen inference was also exercised locally in a WebGPU browser: an automatic $49 refund produced a persisted receipt, a $249 refund paused for approval and committed after approval, and an adversarial $750 request was blocked. The first request on a cold model may take substantially longer than later requests while inference and grammar kernels initialize. A policy question also exercised the numeric-answer guard: an invented 14-day window was withheld, and the model regenerated an answer with the correct 30-day window and $100/$500 thresholds from retrieved sources. These are smoke tests, not a measured model-quality benchmark.
+Real Qwen inference was also exercised locally in a WebGPU browser, before customer confirmation was added: an automatic $49 refund produced a persisted receipt, a $249 refund paused for approval and committed after approval, and an adversarial $750 request was blocked. The first request on a cold model may take substantially longer than later requests while inference and grammar kernels initialize. A policy question also exercised the numeric-answer guard: an invented 14-day window was withheld, and the model regenerated an answer with the correct 30-day window and $100/$500 thresholds from retrieved sources. These are smoke tests, not a measured model-quality benchmark.
 
-Two design decisions came directly from actual model behavior: capability sets narrow after successful reads to prevent repeated retrieval loops, and transaction-result wording is owned by the runtime because a model can produce an incorrect success claim after a rejected action. Explicit order scope and completed-turn context prevent an earlier request from silently becoming the next action target.
+Three design decisions came directly from actual model behavior. Customer confirmation exists because Qwen refunded an order in a request that said “Do not refund or replace it”. In addition, capability sets narrow after successful reads to prevent repeated retrieval loops, and transaction-result wording is owned by the runtime because a model can produce an incorrect success claim after a rejected action. Explicit order scope and completed-turn context prevent an earlier request from silently becoming the next action target.
 
 The public deployment intentionally depends on WebGPU rather than a billed cloud backend. First load is substantial (about 830 MB of model weights), and device/browser GPU support varies. The cached model still has to initialize after a reload. A visitor who cannot run WebGPU can inspect the source and the labeled deterministic walkthrough.
 

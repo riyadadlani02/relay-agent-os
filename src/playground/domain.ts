@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { authorize, consume, mint, type Capability, type Principal } from '../os/capability';
 
 export const actionSchema = z
   .object({
@@ -61,11 +62,13 @@ export interface Receipt {
   kind: 'refund' | 'replacement' | 'handoff';
   amountCents: number;
   at: string;
+  /** The customer-granted capability that authorized this change. */
+  capability?: string;
 }
 export interface Trace {
   id: string;
   at: string;
-  kind: 'model' | 'tool' | 'policy' | 'operator' | 'error';
+  kind: 'model' | 'tool' | 'policy' | 'customer' | 'operator' | 'error';
   name: string;
   input: unknown;
   output: unknown;
@@ -89,6 +92,15 @@ export interface Pending {
   action: Action;
   amountCents: number;
   createdAt: string;
+  /** Capability the customer granted; revoked if the operator rejects. */
+  capability?: string;
+}
+/** A model-proposed change waiting for the customer to authorize it. */
+export interface Consent {
+  id: string;
+  action: Action;
+  amountCents: number;
+  createdAt: string;
 }
 export interface Session {
   id: string;
@@ -98,6 +110,9 @@ export interface Session {
   orders: Order[];
   receipts: Receipt[];
   pending?: Pending;
+  consent?: Consent;
+  /** Authority granted to this session's agent. Absent in sessions saved before consent existed. */
+  capabilities?: Capability[];
   tokens: number;
   model?: string;
 }
@@ -237,11 +252,48 @@ export function checkAction(
   };
 }
 
-// Called inside the store's write transaction. Eligibility is rechecked at commit time.
+export const AGENT = 'agent';
+export const CUSTOMER: Principal = { kind: 'user', id: 'customer' };
+export const orderResource = (orderId: string) => `order:${orderId}`;
+
+/**
+ * The customer's confirmation becomes a single-use capability for exactly this tool and order.
+ * The model can select a tool, but only the customer can mint the authority to use it.
+ */
+export function grantConsent(session: Session, action: Action): Capability {
+  session.capabilities ??= [];
+  return mint(
+    session.capabilities,
+    {
+      id: crypto.randomUUID(),
+      holder: AGENT,
+      rights: [action.tool],
+      resource: orderResource(action.orderId),
+      uses: 1,
+    },
+    CUSTOMER,
+  );
+}
+export function customerGrant(session: Session, action: Action) {
+  return authorize(
+    session.capabilities ?? [],
+    AGENT,
+    action.tool,
+    orderResource(action.orderId),
+    Date.now(),
+  );
+}
+
+// Called inside the store's write transaction. Eligibility is rechecked at commit time, and the
+// change must be covered by a customer-granted capability, which it spends.
 export function commitAction(session: Session, action: Action, approved: boolean): Receipt {
   const check = checkAction(action, session);
   if (check.decision === 'deny' || (check.decision === 'review' && !approved))
     throw new Error(check.explanation);
+  const grant = customerGrant(session, action);
+  if (!grant.ok)
+    throw new Error('The customer has not authorized this change. No record was changed.');
+  consume(session.capabilities!, grant.capability.id);
   const order = session.orders.find((o) => o.id === action.orderId)!;
   const receipt: Receipt = {
     id: crypto.randomUUID(),
@@ -249,6 +301,7 @@ export function commitAction(session: Session, action: Action, approved: boolean
     kind: action.tool === 'refunds.request' ? 'refund' : 'replacement',
     amountCents: check.amountCents,
     at: new Date().toISOString(),
+    capability: grant.capability.id,
   };
   if (receipt.kind === 'refund') order.refunded = true;
   else order.replacement = true;

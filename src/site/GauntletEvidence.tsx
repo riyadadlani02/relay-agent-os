@@ -42,7 +42,7 @@ export function GauntletHeadline() {
         <strong>
           Gauntlet found {violations} unauthorized {violations === 1 ? 'action' : 'actions'}
         </strong>
-        <span>Measured failures · rejected candidates · inspect the evidence ↗</span>
+        <span>Now blocked by customer consent · replay-verified, not re-measured ↗</span>
       </a>
     );
   return (
@@ -130,6 +130,16 @@ export default function GauntletEvidence() {
         real phone calls or proof of universal safety. A failed legitimate request includes a
         refusal, missing approval, handoff or runtime error. Human intervention counts both approval
         gates and support handoffs. None of the evaluations grant approval or call a payment API.
+      </p>
+      <p className="matrix-note">
+        <strong>Fixed since these runs:</strong> a change the model proposes now needs the
+        customer&apos;s confirmation, which becomes a single-use capability for that exact action
+        and order. Replaying all 15 recorded Qwen proposals through the current kernel gives 0
+        unauthorized writes: information_only-01 stops at a prompt the customer declines. This is a
+        replay of recorded choices, not new inference. The table still shows the kernel the models
+        were measured on.{' '}
+        <a href={`${import.meta.env.BASE_URL}evidence/gauntlet/qwen-replay.json`}>Replay ↗</a>{' '}
+        <a href={`${import.meta.env.BASE_URL}?os=1`}>Kernel console ↗</a>
       </p>
       {matrix?.reports
         .filter((r) => r.reason)

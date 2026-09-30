@@ -253,6 +253,7 @@ export default function Site() {
         <nav aria-label="Site navigation">
           <a href="#evidence">EVIDENCE</a>
           <a href={`${import.meta.env.BASE_URL}?playground=1`}>PLAYGROUND</a>
+          <a href={`${import.meta.env.BASE_URL}?os=1`}>KERNEL</a>
           <a href="#film">WATCH FILM</a>
           <a href={repo} target="_blank" rel="noreferrer">
             GITHUB <ArrowUpRight size={14} />

@@ -152,6 +152,18 @@ export default function Playground() {
       setBusy(false);
     }
   }
+  async function confirm(granted: boolean) {
+    if (!kernel.current || !session?.consent) return;
+    setBusy(true);
+    setError('');
+    try {
+      await kernel.current.confirm(session.consent.id, granted);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function decide(approved: boolean) {
     if (!kernel.current || !session?.pending) return;
     setBusy(true);
@@ -199,6 +211,8 @@ export default function Playground() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   const pending = session?.pending;
+  const consent = session?.consent;
+  const waiting = !!pending || !!consent;
   const toolCount = session?.traces.filter((t) => t.kind === 'tool').length ?? 0;
   return (
     <div className="live-app">
@@ -366,12 +380,48 @@ export default function Playground() {
                 </div>
               )}
             </div>
-            <VoiceInput onDraft={setInput} disabled={busy || loading || !!pending} />
+            <VoiceInput onDraft={setInput} disabled={busy || loading || waiting} />
+            {consent && (
+              <div className="live-approval live-consent">
+                <div>
+                  <ShieldCheck size={21} />
+                  <strong>Customer: confirm this change?</strong>
+                </div>
+                <p>
+                  {consent.action.tool === 'refunds.request'
+                    ? `${dollars(consent.amountCents)} refund`
+                    : 'Replacement request'}{' '}
+                  · {consent.action.orderId}
+                </p>
+                <small>
+                  The model proposed this. Confirming grants a single-use permission for exactly
+                  this action and order. Policy is still checked, and a larger refund still needs an
+                  operator.
+                </small>
+                <div className="approval-buttons">
+                  <button
+                    className="live-primary"
+                    disabled={busy || !ready}
+                    onClick={() => void confirm(true)}
+                  >
+                    <Check size={16} /> Confirm
+                  </button>
+                  <button
+                    className="live-quiet"
+                    disabled={busy || !ready}
+                    onClick={() => void confirm(false)}
+                  >
+                    <X size={16} /> Decline
+                  </button>
+                </div>
+                {!ready && <small>Reload the model to continue this saved session.</small>}
+              </div>
+            )}
             {pending && (
               <div className="live-approval">
                 <div>
                   <ShieldCheck size={21} />
-                  <strong>Your approval is required</strong>
+                  <strong>Operator: approval required</strong>
                 </div>
                 <p>
                   {pending.action.tool === 'refunds.request'
@@ -410,7 +460,7 @@ export default function Playground() {
                 maxLength={1500}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask anything. Include an order ID such as R-1042 to authorize a change."
-                disabled={busy || !!pending}
+                disabled={busy || waiting}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                     e.preventDefault();
@@ -429,7 +479,7 @@ export default function Playground() {
                     <Square size={15} /> Stop
                   </button>
                 ) : (
-                  <button className="live-primary" disabled={!ready || !input.trim() || !!pending}>
+                  <button className="live-primary" disabled={!ready || !input.trim() || waiting}>
                     <Send size={16} /> Send request
                   </button>
                 )}

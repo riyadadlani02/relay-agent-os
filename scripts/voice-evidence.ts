@@ -28,6 +28,9 @@ const kernel = new AgentKernel(
   () => {},
 );
 await kernel.send(reviewed);
+// The reviewed request explicitly asks for a refund, so the customer confirms the proposal.
+const proposed = state.consent;
+if (proposed) await kernel.confirm(proposed.id, true);
 const evidence = {
   generatedAt: new Date().toISOString(),
   audio: 'hindi-request.mp3',

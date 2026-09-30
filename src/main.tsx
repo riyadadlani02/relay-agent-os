@@ -7,6 +7,8 @@ const LivePlayground = lazy(() => import('./playground/Playground'));
 const Site = lazy(() => import('./site/Site'));
 const Gauntlet = lazy(() => import('./gauntlet/Gauntlet'));
 const gauntlet = new URLSearchParams(location.search).has('gauntlet');
+const KernelConsole = lazy(() => import('./os/Console'));
+const os = new URLSearchParams(location.search).has('os');
 const Workspace = import.meta.env.MODE !== 'pages' ? lazy(() => import('./WorkspaceEntry')) : Site;
 const Payments =
   import.meta.env.MODE !== 'pages' ? lazy(() => import('./connectors/Payments')) : Site;
@@ -14,13 +16,15 @@ const paymentDemo =
   import.meta.env.MODE !== 'pages' && new URLSearchParams(location.search).has('payments');
 const Entry = gauntlet
   ? Gauntlet
-  : paymentDemo
-    ? Payments
-    : playground
-      ? LivePlayground
-      : workspace
-        ? Workspace
-        : Site;
+  : os
+    ? KernelConsole
+    : paymentDemo
+      ? Payments
+      : playground
+        ? LivePlayground
+        : workspace
+          ? Workspace
+          : Site;
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Suspense
