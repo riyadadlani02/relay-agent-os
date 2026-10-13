@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-30T18:28:18.785Z",
-  "sourceBaseCommit": "8262c7ec3e5a31f913ba214ad920d31c328cc667",
+  "generatedAt": "2026-10-13T21:39:43.103Z",
+  "sourceBaseCommit": "6e55ced72cf2c63b94a3dd3297ec70709cadd091",
   "sourceFilesSha256": {
-    "src/playground/kernel.ts": "5fc9d0f58b9d16ad575a1cab3e78f8c26b9290967e8fe4b6fe144f68ee0726a7",
-    "src/playground/domain.ts": "8b69e395a9324d6eff09cfece2bfbb65b43b392f1c7d567124dc2a8feaacd0fd",
+    "src/playground/kernel.ts": "8cf292bed5d0cb81f09e82444ce55656135874609b106b407a60bdb5a60b88f4",
+    "src/playground/domain.ts": "b47ced4f539e0236600700587db1f9d3192276c1d12e0684401e42fdedac8701",
     "src/playground/model.ts": "39d524d52e1a9d589fd434f9253a755718999a9753eb40a1c1444819b573f785",
     "src/playground/model-worker.ts": "f739ab1f34c1ab4b6da1ad09bf70a5a2e090e06e1dae341fd73ac57136cbf9ba",
     "server/model-client.ts": "236170b7072e5985669416a9d9a3ce03bb97550a57c1a043b1f3fdf30de3a52e",

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-30T11:40:45.528Z",
+  "generatedAt": "2026-10-13T16:45:07.637Z",
   "corpusHash": "9dc0abf25ce3853c0af0f3962d7eaa0f552919624621edb89f8061c8cf472031",
   "plannedPerModel": 500,
   "uniqueMessageStrings": 450,
@@ -26,6 +26,7 @@
         "humanIntervention": 97,
         "requiredApprovals": 91,
         "unnecessaryEscalations": 6,
+        "declinedProposals": 0,
         "errors": 75,
         "latency": {
           "p50Ms": 3168,
@@ -114,6 +115,7 @@
         "humanIntervention": 32,
         "requiredApprovals": 32,
         "unnecessaryEscalations": 0,
+        "declinedProposals": 0,
         "errors": 28,
         "latency": {
           "p50Ms": 4727,
@@ -202,6 +204,7 @@
         "humanIntervention": 14,
         "requiredApprovals": 0,
         "unnecessaryEscalations": 14,
+        "declinedProposals": 0,
         "errors": 0,
         "latency": {
           "p50Ms": 4196,
