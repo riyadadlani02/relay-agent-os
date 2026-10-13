@@ -51,8 +51,8 @@ Reports include the corpus hash, source file fingerprints for hosted execution, 
 npm ci
 npm run gauntlet:corpus                 # free: export and inspect 500 cases
 npx vitest run tests/gauntlet.test.ts    # free: 500 deterministic contract probes + scorer/budget/gate tests
-python3 scripts/gauntlet.py --live --model gpt-4.1-mini --report mini-candidate
-python3 scripts/gauntlet.py --live --model gpt-5.4 --report frontier-candidate
+python3 scripts/gauntlet.py --live --model gpt-4.1-mini --report mini-current-kernel --campaign current-kernel --cap-usd 1
+python3 scripts/gauntlet.py --live --model gpt-5.4 --report frontier-current-kernel --campaign current-kernel-frontier --cap-usd 4.5
 npx tsx scripts/publish-gauntlet.ts
 ```
 
@@ -65,6 +65,8 @@ For Qwen, open `/?gauntlet=1`, choose a batch time, then **Run / resume Qwen**. 
 Live calls require `--live`. A SQLite ledger in ignored `data/gauntlet/budget.db` atomically reserves each call's conservative bound before transmission and settles it against returned token usage. Both hosted models and all resumes share the same ledger. An interrupted call retains its reservation. The ledger refuses a different cap or prior-spend setting rather than silently resetting.
 
 For this project run, the cap is **$3 total**, with **$1 reserved for earlier model/speech work and uncertainty**, leaving at most $2 for this Gauntlet. The $1 is a conservative allocation, not an invoice. The report's charged estimate uses uncached token prices; provider invoices can differ. Do not remove the ledger to restart an authorized budget. A new authorized evaluation campaign needs an explicitly recorded budget and separate ledger.
+
+That is enforced. A new report must name a campaign and its cap (`--campaign <name> --cap-usd <usd>`, at most $10). The campaign gets its own ledger, `data/gauntlet/budget-<name>.db`, with no prior-work reserve, and the report records the campaign with its budget snapshot. Without a campaign, the runner only resumes the original reports on the shared ledger. A report can only be resumed with the campaign it started under, and a campaign's ledger refuses a different cap later. Missing provider settings fail before any evidence is written or any ledger is opened. At the original runs' token rates, a complete GPT-4.1 mini run costs about $0.54 and a complete GPT-5.4 run about $3.75.
 
 Rates were checked against the official [GPT-4.1 mini](https://developers.openai.com/api/docs/models/gpt-4.1-mini) and [GPT-5.4](https://developers.openai.com/api/docs/models/gpt-5.4) pages. Only those two priced hosted adapters are accepted by this CLI.
 

@@ -19,7 +19,7 @@ An AI support agent that can only talk is safe but not very useful. One that can
 - **Discovery first.** Which record is authoritative for the amount, who may approve, and which requests always need a person.
 - **Deliberately not automated.** Identity and account access, exceptions, replacements, refunds above the limit, and approval itself.
 - **Rollout.** Shadow mode on de-identified traffic → an assisted pilot where operators approve everything → a small autonomous slice with a spend cap and a kill switch → expand only on evidence.
-- **Not only refunds.** The same kernel, unchanged, runs [a telecom operator](src/os/telecom.ts) (outage credits; SIM swaps gated on an in-store ID check) and [a food-delivery app](src/os/delivery.ts) (missing items, with a 30-day limit that splitting a claim cannot get around). [Try all three in the console](https://riyadadlani02.github.io/relay-agent-os/?os=1).
+- **Not only refunds.** The same kernel, unchanged, runs scripted telecom and food-delivery scenarios on fictional data: [telecom](src/os/telecom.ts) (outage credits; SIM swaps gated on an in-store ID check) and [food delivery](src/os/delivery.ts) (missing items, with a 30-day limit that splitting a claim cannot get around). [Try all three in the console](https://riyadadlani02.github.io/relay-agent-os/?os=1).
 
 ## Relay Gauntlet: the safety claim is now falsifiable
 

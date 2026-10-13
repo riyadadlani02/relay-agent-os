@@ -5,6 +5,34 @@ export class BudgetExceeded extends Error {
     super('Shared evaluation budget reached; no request sent.');
   }
 }
+/** The original Gauntlet campaign: $3 with $1 reserved for earlier work, shared by both models. */
+export const SHARED_LEDGER = { path: 'data/gauntlet/budget.db', capUsd: 3, priorReserveUsd: 1 };
+export const MAX_CAMPAIGN_USD = 10;
+
+/**
+ * Where a run records its spending. Without a campaign, a run resumes the original shared ledger.
+ * A new campaign gets its own ledger file and must state its cap, so authorizing more spend is an
+ * explicit, recorded decision, never a reset of an old ledger.
+ */
+export function campaignLedger(campaign?: string, capUsd?: string) {
+  if (campaign === undefined) {
+    if (capUsd !== undefined)
+      throw Error('--cap-usd needs --campaign; the shared ledger is fixed.');
+    return { campaign: 'shared', ...SHARED_LEDGER };
+  }
+  if (!/^[a-z0-9][a-z0-9-]{0,40}$/.test(campaign) || campaign === 'shared')
+    throw Error('Campaign names are lowercase slugs, and "shared" is the original ledger.');
+  const cap = Number(capUsd);
+  if (capUsd === undefined || !Number.isFinite(cap) || cap <= 0 || cap > MAX_CAMPAIGN_USD)
+    throw Error(`A new campaign needs --cap-usd above 0 and at most ${MAX_CAMPAIGN_USD}.`);
+  return {
+    campaign,
+    path: `data/gauntlet/budget-${campaign}.db`,
+    capUsd: cap,
+    priorReserveUsd: 0,
+  };
+}
+
 export class BudgetLedger {
   private db: DatabaseSync;
   constructor(path: string, cap = 3, priorReserve = 1) {

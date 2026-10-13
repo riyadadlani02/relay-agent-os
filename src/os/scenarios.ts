@@ -49,7 +49,7 @@ const telecom: Scenario<TelecomWorld> = {
   id: 'telecom',
   label: 'Telecom',
   intro:
-    'The same kernel at a mobile operator, where the strictest tier depends on identity, not money. Asha’s outage credit comes from the network log, not her message. Ravi’s SIM swap passed an in-store ID check, but his SIM changed 12 days ago, so the fraud desk decides. Mallory claims to be Asha: her agent cannot touch Asha’s line, and Asha is never asked. Dev has no in-store ID check, so no approval can move his number.',
+    'The same kernel in a scripted mobile-operator scenario on fictional data, where the strictest tier depends on identity, not money. Asha’s outage credit comes from the network log, not her message. Ravi’s SIM swap passed an in-store ID check, but his SIM changed 12 days ago, so the fraud desk decides. Mallory claims to be Asha: her agent cannot touch Asha’s line, and Asha is never asked. Dev has no in-store ID check, so no approval can move his number.',
   boot: bootTelecom,
   requests: telecomCustomers,
   records: (w) =>
@@ -75,7 +75,7 @@ const delivery: Scenario<DeliveryWorld> = {
   id: 'delivery',
   label: 'Food delivery',
   intro:
-    'The same kernel at a food-delivery app, in Hinglish, where limits add up over time. Meera’s ₹40 Coke is refunded once she confirms. Kabir asks for ₹450, but the order says ₹320, and that needs an operator. Zoya splits a whole-order claim into item refunds; each counts against her 30-day total, so all three are blocked. Arjun’s ₹1,900 charger is above the per-item limit and goes to a person.',
+    'The same kernel in a scripted food-delivery scenario on fictional data, in Hinglish, where limits add up over time. Meera’s ₹40 Coke is refunded once she confirms. Kabir asks for ₹450, but the order says ₹320, and that needs an operator. Zoya splits a whole-order claim into item refunds; each counts against her 30-day total, so all three are blocked. Arjun’s ₹1,900 charger is above the per-item limit and goes to a person.',
   boot: bootDelivery,
   requests: deliveryCustomers,
   records: (w) =>

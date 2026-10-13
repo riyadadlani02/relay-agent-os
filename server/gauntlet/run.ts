@@ -6,7 +6,7 @@ import { gauntlet } from '../../src/gauntlet/corpus.js';
 import { runCase, summarize, type CaseResult } from '../../src/gauntlet/evaluate.js';
 import type { Session, SessionStore } from '../../src/playground/domain.js';
 import { HostedModel, modelConfig } from '../model-client.js';
-import { BudgetLedger } from './budget.js';
+import { BudgetLedger, campaignLedger } from './budget.js';
 const args = process.argv.slice(2);
 const option = (name: string, fallback: string) =>
   args.includes(name) ? args[args.indexOf(name) + 1] : fallback;
@@ -29,6 +29,8 @@ if (!args.includes('--live')) {
   process.exit(0);
 }
 if (existsSync('.env')) loadEnvFile('.env');
+// Fail before writing evidence or opening a ledger if the provider is not configured.
+const providerConfig = modelConfig();
 const modelName = option('--model', 'gpt-4.1-mini');
 if (!['gpt-4.1-mini', 'gpt-5.4'].includes(modelName))
   throw Error('Only priced model adapters are allowed.');
@@ -47,6 +49,22 @@ const reportName = option('--report', modelName);
 if (!/^[a-z0-9][a-z0-9.-]{0,80}$/.test(reportName))
   throw Error('Report name must be a simple file stem.');
 const out = `public/evidence/gauntlet/${reportName}.json`;
+// The original runs share one $3 ledger ($1 reserved for prior work). A new report starts a new
+// campaign with its own ledger and explicit cap; old ledgers are never reset or deleted. Checked
+// before anything is written.
+const ledger = campaignLedger(
+  args.includes('--campaign') ? option('--campaign', '') : undefined,
+  args.includes('--cap-usd') ? option('--cap-usd', '') : undefined,
+);
+const resumedCampaign = existsSync(out)
+  ? (JSON.parse(readFileSync(out, 'utf8')).budget?.campaign ?? 'shared')
+  : undefined;
+if (!resumedCampaign && ledger.campaign === 'shared')
+  throw Error(
+    'A new report needs its own budget: add --campaign <name> --cap-usd <usd>. The shared ledger only resumes the original runs.',
+  );
+if (resumedCampaign && resumedCampaign !== ledger.campaign)
+  throw Error(`${out} belongs to the "${resumedCampaign}" campaign; resume it with that ledger.`);
 const sourceBundle = `evidence/gauntlet/source-${sourceHash}.json`;
 writeFileSync(
   `public/${sourceBundle}`,
@@ -70,8 +88,10 @@ if (previous && (previous.corpusHash !== corpusHash || previous.sourceHash !== s
     'Existing report uses different source/corpus; preserve it before starting a new run.',
   );
 mkdirSync('data/gauntlet', { recursive: true });
-// Reserve $1 for prior model/speech work and uncertainty. The remaining $2 is shared across both models and resumes.
-const budget = new BudgetLedger('data/gauntlet/budget.db', 3, 1);
+const budget = new BudgetLedger(ledger.path, ledger.capUsd, ledger.priorReserveUsd);
+console.log(
+  JSON.stringify({ campaign: ledger.campaign, ledger: ledger.path, ...budget.snapshot() }),
+);
 const rows: CaseResult[] = previous?.results ?? [];
 const done = new Set(rows.map((r) => r.id));
 let stoppedReason: string | undefined;
@@ -96,7 +116,7 @@ function save() {
       'Synthetic local USD records through AgentKernel. No payment calls or operator approvals. Restart cases reopen a JSON checkpoint and reconstruct the kernel, not an OS process restart.',
     summary: summarize(rows),
     stoppedReason,
-    budget: budget.snapshot(),
+    budget: { campaign: ledger.campaign, ...budget.snapshot() },
     results: rows,
   };
   writeFileSync(`${out}.tmp`, JSON.stringify(report, null, 2) + '\n');
@@ -136,7 +156,7 @@ async function evaluateCase(c: (typeof gauntlet)[number]) {
   };
   let reservation: string | undefined;
   const model = new HostedModel(
-    { ...modelConfig(), name: modelName },
+    { ...providerConfig, name: modelName },
     (bound) => {
       reservation = budget.reserve(bound, modelName);
     },

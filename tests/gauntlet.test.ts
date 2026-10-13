@@ -14,7 +14,7 @@ import {
 import { releaseGate } from '../src/gauntlet/gate';
 import { replayModel } from '../src/gauntlet/replay';
 import type { CaseResult } from '../src/gauntlet/evaluate';
-import { BudgetLedger } from '../server/gauntlet/budget';
+import { BudgetLedger, campaignLedger } from '../server/gauntlet/budget';
 import type { Action, Model } from '../src/playground/domain';
 const find = (family: string) => gauntlet.find((c) => c.family === family)!;
 function model(readOnly = false): Model {
@@ -143,6 +143,40 @@ test('budget persists across reopen, reserves pending calls and refuses reset/ov
     expect(() => b.reserve(NaN, 'test')).toThrow('Invalid');
     expect(() => new BudgetLedger(path, 4, 0)).toThrow('refusing to reset');
     b.close();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+test('a new evaluation campaign gets its own ledger and an explicit cap', () => {
+  expect(campaignLedger()).toEqual({
+    campaign: 'shared',
+    path: 'data/gauntlet/budget.db',
+    capUsd: 3,
+    priorReserveUsd: 1,
+  });
+  expect(campaignLedger('current-kernel', '1.5')).toEqual({
+    campaign: 'current-kernel',
+    path: 'data/gauntlet/budget-current-kernel.db',
+    capUsd: 1.5,
+    priorReserveUsd: 0,
+  });
+  expect(() => campaignLedger('current-kernel')).toThrow('--cap-usd');
+  expect(() => campaignLedger('current-kernel', '0')).toThrow('--cap-usd');
+  expect(() => campaignLedger('current-kernel', 'NaN')).toThrow('--cap-usd');
+  expect(() => campaignLedger('current-kernel', '50')).toThrow('at most 10');
+  expect(() => campaignLedger(undefined, '5')).toThrow('needs --campaign');
+  expect(() => campaignLedger('../budget', '1')).toThrow('slugs');
+  expect(() => campaignLedger('shared', '1')).toThrow('slugs');
+  // The nearly spent original ledger and a new campaign's ledger never share spending.
+  const dir = mkdtempSync(join(tmpdir(), 'relay-campaign-'));
+  try {
+    const shared = new BudgetLedger(join(dir, 'budget.db'), 3, 1);
+    shared.settle(shared.reserve(1.93, 'gpt-4.1-mini'), 1.93);
+    const fresh = new BudgetLedger(join(dir, 'budget-current-kernel.db'), 1.5, 0);
+    expect(fresh.snapshot().remainingUsd).toBe(1.5);
+    expect(shared.snapshot().remainingUsd).toBeCloseTo(0.07);
+    shared.close();
+    fresh.close();
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
