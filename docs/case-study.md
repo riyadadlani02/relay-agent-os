@@ -30,6 +30,8 @@ Voice treats a pause as unreliable permission to end a caller’s thought, so br
 
 The first 240 hosted-model requests produced no unauthorized mutations but exposed 30 missing-order failures: the factuality checker treated the requested order number as unsupported when lookup returned no row. The fix returns the requested identifier as part of the lookup evidence. Both the first report and the rerun are published. Unnecessary handoffs remain visible rather than being relabeled as successes. See [the evaluation report](evaluation.md).
 
+The same class of bug came back in the Gauntlet. That fix had patched the evidence, not the checker, so it only covered replies made after a lookup. When a model answered “R-1042 was already refunded” straight from earlier receipts, with no lookup that turn, the checker again read `1042` as an unsupported number and withheld a correct reply: 70 of GPT-4.1 mini's 75 error cases and 21 of GPT-5.4's 28. Every one of the 75 had taken the correct action. The fix now sits in the checker: an order ID the customer named is an identifier, already confined by the scope check, so it is never a numeric claim. Withheld replies are now recorded verbatim, so the next rescore needs no inference. The measured results stay published as measured, with a [projection beside them](gauntlet-results.md#answer-checker-defect-found-after-these-runs) until a rerun replaces both.
+
 The [payment integration notes](payments.md) distinguish successful real test-order creation from the refund lifecycle covered by controlled transport tests. The [voice evidence](voice.md) includes the synthetic audio, raw recognition output, visible review edit and actual model/tool trace.
 
 ## Rollout with a customer

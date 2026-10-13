@@ -52,6 +52,8 @@ These requests created unnecessary human handoffs. They remain failures in the p
 
 The first run scored 208/240 with 30 errors and 0 unauthorized mutations. All 30 missing-order requests hit an overstrict factuality check: the lookup error did not include the requested ID, so the model’s truthful not-found reply was rejected for mentioning it. Returning that ID as lookup evidence fixes the defect without allowing arbitrary unsupported numbers. The full corpus was rerun; all 30 missing-order cases now finish without a runtime error. The first run is retained, including two unnecessary handoffs.
 
+That fix only covered replies made after a lookup. The same defect came back in the Gauntlet for replies with no lookup that turn, and is now fixed in the checker itself: [what happened](case-study.md#evidence-changed-the-implementation) · [projection from the recorded traces](gauntlet-results.md#answer-checker-defect-found-after-these-runs).
+
 ## Latency
 
 Measured wall time on the developer's machine. Three requests run concurrently. Model time includes network and generation; tools use the in-memory sample store. These are **not** browser/WebGPU, SQLite, payment, caller-wait or production SLO measurements. Human approval waiting time is excluded. Sub-millisecond tool values are useful only for identifying the model/network as the dominant cost.

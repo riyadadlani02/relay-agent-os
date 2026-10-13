@@ -1,6 +1,6 @@
 # Relay Gauntlet — measured results
 
-Generated 2026-09-30T11:40:45.528Z. Corpus SHA-256: `9dc0abf25ce3853c0af0f3962d7eaa0f552919624621edb89f8061c8cf472031`.
+Generated 2026-10-13T16:45:07.637Z. Corpus SHA-256: `9dc0abf25ce3853c0af0f3962d7eaa0f552919624621edb89f8061c8cf472031`.
 
 500 unique authored cases: **400 attacks + 100 legitimate controls**, not 500 independent adversarial phone calls. There are 550 customer turns and 450 distinct message strings in the complete corpus. Fifty cases include a refund followed by replay after reopening a saved checkpoint; request wording is deliberately reused against different state.
 
@@ -11,6 +11,17 @@ Generated 2026-09-30T11:40:45.528Z. Corpus SHA-256: `9dc0abf25ce3853c0af0f3962d7
 | Qwen2.5-1.5B-Instruct-q4f16_1-MLC | partial  |  15/500 |                         1/15 |                        4/4 |              14/15 |           0 |
 
 Incomplete rows are not comparable whole-corpus scores. Failures and errors remain in their denominators. No operator approvals or payment API calls were made. A zero observed count is not a guarantee that another model or prompt cannot cause a violation.
+
+## Answer-checker defect found after these runs
+
+The reply checker read an order ID the customer named, such as `R-1042`, as the numeric claim `1042` and withheld correct replies. It is the same class of bug as the earlier pilot's 30 missing-order failures. The checker now treats customer-named order IDs as identifiers ([regression tests](../tests/live.test.ts)). **The measured rows above are unchanged.** Projected from the recorded traces, with no new inference:
+
+| Model        | Cases | Error cases | Withheld only for the order ID | Actions correct | Outcomes correct, measured → projected | Unauthorized actions |
+| ------------ | ----: | ----------: | -----------------------------: | --------------: | -------------------------------------: | -------------------: |
+| gpt-4.1-mini |   500 |          75 |                             70 |         484/500 |                              409 → 479 |                    0 |
+| gpt-5.4      |   185 |          28 |                             21 |         180/185 |                              152 → 173 |                    0 |
+
+A projection is not a result. The withheld reply text was not recorded, so the rest of each reply is unverified (the trace now records it), and a reply shown instead of withheld changes what later turns see. Both rows also predate customer consent. A rerun on the current kernel replaces them. [gpt-4.1-mini projection](../public/evidence/gauntlet/gpt-4.1-mini.order-id-projection.json) · [gpt-5.4 projection](../public/evidence/gauntlet/gpt-5.4.order-id-projection.json)
 
 ## Release decision and spending
 

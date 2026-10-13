@@ -81,11 +81,23 @@ export interface Message {
   sources?: string[];
 }
 
-export function unsupportedNumbers(reply: string, evidence: unknown[]): number[] {
+/**
+ * Numbers in a reply that the retrieved evidence does not contain. Order IDs the customer named
+ * are identifiers, not numeric claims: the kernel's scope check already confines a reply to
+ * them, so `R-1042` must not be read as the claim "1042". IDs the customer did not name still
+ * count, so a reply cannot introduce an unretrieved order.
+ */
+export function unsupportedNumbers(
+  reply: string,
+  evidence: unknown[],
+  namedOrderIds: string[] = [],
+): number[] {
+  const named = new Set(namedOrderIds.map((id) => id.toUpperCase()));
+  const claims = reply.replace(/\bR-\d{4}\b/gi, (id) => (named.has(id.toUpperCase()) ? ' ' : id));
   const numbers = (text: string) =>
     (text.replace(/(\d),(?=\d{3}\b)/g, '$1').match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
   const supported = new Set(numbers(JSON.stringify(evidence)));
-  return [...new Set(numbers(reply).filter((value) => !supported.has(value)))];
+  return [...new Set(numbers(claims).filter((value) => !supported.has(value)))];
 }
 export interface Pending {
   id: string;

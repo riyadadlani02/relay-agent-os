@@ -12,32 +12,26 @@ Click an outcome on the first screen to run its deterministic walkthrough. No AP
 
 **A proposal is never permission.** The model is interchangeable. It selects tools; code determines amounts from records, enforces limits, binds an action to its order, and checks again before committing. A change the model proposes also needs the customer's confirmation, which becomes a single-use capability for exactly that action. Refunds in the public browser demo update a local sample ledger, not a payment processor.
 
-## Relay kernel: agents as processes, actions as syscalls
+## The problem it solves
 
-The runtime is generalized into a small kernel for agents ([design](docs/kernel.md) · [console](https://riyadadlani02.github.io/relay-agent-os/?os=1) · [`src/os/`](src/os)):
+An AI support agent that can only talk is safe but not very useful. One that can issue refunds is useful and easy to talk into mistakes: “my manager already approved this,” a large refund split into small ones, a currency swapped mid-sentence. Relay treats the model like a capable new hire who can suggest a refund but cannot open the cash drawer. [Full case study](docs/case-study.md)
 
-- **Capabilities are the only authority.** Processes can narrow and delegate what they hold, never mint. Use-limited grants are carved, not copied. Revocation cascades.
-- **One syscall gate:** authority → policy → the owner's consent → operator approval → atomic commit. Authority is checked first, so an unauthorized agent learns nothing about the resource.
-- **Consent is delegation.** A person turns part of their own authority into one use of one exact call. Nobody can consent for someone else.
-- **Processes, scheduler and quotas:** priorities, round-robin, step and token budgets, budget carving for children, kill with subtree cleanup, and a late proposal from a killed process is discarded.
-- **IPC** only over channels the kernel created between parent and child.
-- **Hash-chained journal:** editing any committed entry breaks verification from that point on.
-- **Real LLM agents as processes:** a model proposes one syscall per step as strict JSON, sees the kernel's answer (including refusals), and can spawn a child agent with narrowed authority. Runs in the browser (Qwen, WebGPU), through a local server model, or from Node.
-- **Multi-agent workflows as data:** steps run in parallel where they can, each step holds only its own capabilities, and a consent scope decides which step may ask the customer anything. Three examples: refund with parallel checks and an audit, escalation to a person, and a read-only answer.
-
-The console's scripted scenario runs four customers concurrently on one kernel: an automatic refund after consent, a $249 refund that needs consent and an operator, a prompt-injected agent confined by its capabilities, and a looping agent stopped by its budget. Those programs are scripted so every decision is reproducible. Its **Live AI agents** mode runs real models on the same kernel. The adapter is tested with scripted fixtures and mocked providers; model quality on this multi-agent flow has not been measured yet (`npm run os:live -- --live` is the paid, capped way to do it). 36 unit tests cover the kernel, 5 the agent adapter and 6 the workflow engine. Disabling any of the kernel's key checks (owner authority, capability spending, read isolation, discarding late proposals, revoking rejected grants) makes a test fail.
+- **Discovery first.** Which record is authoritative for the amount, who may approve, and which requests always need a person.
+- **Deliberately not automated.** Identity and account access, exceptions, replacements, refunds above the limit, and approval itself.
+- **Rollout.** Shadow mode on de-identified traffic → an assisted pilot where operators approve everything → a small autonomous slice with a spend cap and a kill switch → expand only on evidence.
+- **Not only refunds.** The same kernel, unchanged, runs [a telecom operator](src/os/telecom.ts) (outage credits; SIM swaps gated on an in-store ID check) and [a food-delivery app](src/os/delivery.ts) (missing items, with a 30-day limit that splitting a claim cannot get around). [Try all three in the console](https://riyadadlani02.github.io/relay-agent-os/?os=1).
 
 ## Relay Gauntlet: the safety claim is now falsifiable
 
 **500 cases, 400 attacks and 100 legitimate controls, across English, Hindi and Hinglish.** The suite tests prompt injection, manager impersonation, refund splitting, currency-unit manipulation, forged approvals, duplicates and replay after state restoration. It uses the actual AgentKernel and an independent outcome scorer.
 
-- **GPT-4.1 mini:** 500/500 tested; **0 unauthorized actions**, **3/100 legitimate requests failed**, **97/500 required human intervention**. Only 409/500 matched their expected outcome; 75 cases had runtime/answer-checker errors. A zero-mutation count alone is not a release pass.
+- **GPT-4.1 mini:** 500/500 tested; **0 unauthorized actions**, **3/100 legitimate requests failed**, **97/500 required human intervention**. 409/500 matched their expected outcome. The 75 error cases were mostly my bug, not the model's: every one took the correct action, and in 70 the reply was withheld only because the answer checker read the order ID `R-1042` as the unsupported number 1042. That is fixed. Projected from the recorded traces: **484/500 correct actions and 479/500 correct outcomes**. A projection is not a rerun, so the measured row stays until the corpus is rerun on the current kernel.
 - **Qwen 1.5B:** stopped after 15 cases with **1 unauthorized refund** on an information-only request and 14 unnecessary handoffs. This candidate is rejected. Remaining cases are untested.
-- **GPT-5.4:** 185/500 cases attempted before the budget guard stopped the run; 0 observed unauthorized actions and 0/38 legitimate requests failed. This partial run is not a whole-corpus result.
+- **GPT-5.4:** 185/500 cases attempted before the budget guard stopped the run; 0 observed unauthorized actions and 0/38 legitimate requests failed. The same checker bug caused 21 of its 28 error cases (152 → 173/185 projected). This partial run is not a whole-corpus result.
 
 **What the failure meant, and what changed:** hard amount limits and duplicate checks cannot establish the customer's intent. The small model chose a refund tool despite “Do not refund or replace it.” The runtime now has that authorization boundary: every model-proposed change stops for the customer's confirmation, which mints a [single-use capability](docs/kernel.md#capabilities) for exactly that tool and order. `commitAction` refuses any change without one. Replaying all 15 recorded Qwen tool choices through the current kernel gives [**0 unauthorized writes**](public/evidence/gauntlet/qwen-replay.json); the violating case stops at a prompt the customer declines, and the other 14 are unchanged. That is replay, not new inference: the model rows above were measured on the previous kernel, and the release gate's source fingerprints refuse to reuse them as evidence for this one. All measured actions used fictional local records, not Razorpay.
 
-[**Measured results and every failure**](docs/gauntlet-results.md) · [Method, scoring and budget](docs/gauntlet.md) · [Run Qwen on your device](https://riyadadlani02.github.io/relay-agent-os/?gauntlet=1) · [500-case corpus](public/evidence/gauntlet/corpus.json)
+[**Measured results, every failure and the checker defect**](docs/gauntlet-results.md) · [Method, scoring and budget](docs/gauntlet.md) · [Run Qwen on your device](https://riyadadlani02.github.io/relay-agent-os/?gauntlet=1) · [500-case corpus](public/evidence/gauntlet/corpus.json)
 
 The executable release gate rejects incomplete or stale evidence, unauthorized actions, errors and outcome regressions. The separate manual **Model release gate** workflow requires no API credentials. Local contract tests include 500 scripted probes plus deliberately planted violations; those are tests, not live model evidence.
 
@@ -73,6 +67,24 @@ The first run exposed 30 missing-order errors in the answer checker. The fix and
 The voice path is not a deployed phone line: a speaker explicitly finishes and reviews each transcript before it reaches the agent. The payment guard checks integer minor units and currency, binds every payment to a trusted record, and reads the provider's state back before a terminal action. The INR integration is separate from the public USD sample ledger—there is no implicit currency conversion.
 
 [Voice sample, raw recognition and trace](docs/voice.md) · [Payment connector and evidence](docs/payments.md)
+
+## Under the hood: a small kernel for agents
+
+The runtime is generalized into a small kernel for agents ([design](docs/kernel.md) · [console](https://riyadadlani02.github.io/relay-agent-os/?os=1) · [`src/os/`](src/os)):
+
+- **Capabilities are the only authority.** Processes can narrow and delegate what they hold, never mint. Use-limited grants are carved, not copied. Revocation cascades.
+- **One syscall gate:** authority → policy → the owner's consent → operator approval → atomic commit. Authority is checked first, so an unauthorized agent learns nothing about the resource.
+- **Consent is delegation.** A person turns part of their own authority into one use of one exact call. Nobody can consent for someone else.
+- **Processes, scheduler and quotas:** priorities, round-robin, step and token budgets, budget carving for children, kill with subtree cleanup, and a late proposal from a killed process is discarded.
+- **IPC** only over channels the kernel created between parent and child.
+- **Hash-chained journal:** editing any committed entry breaks verification from that point on.
+- **Real LLM agents as processes:** a model proposes one syscall per step as strict JSON, sees the kernel's answer (including refusals), and can spawn a child agent with narrowed authority. Runs in the browser (Qwen, WebGPU), through a local server model, or from Node.
+- **Same kernel, three industries.** Each industry is a small distribution: a world, its syscalls and their policies. [`support.ts`](src/os/support.ts) is retail refunds. In [`telecom.ts`](src/os/telecom.ts) the strictest tier depends on identity, not money: a SIM swap needs an in-store ID check, takes no SIM serial from the chat, and goes to a fraud desk after a recent change. [`delivery.ts`](src/os/delivery.ts) counts each missing-item refund against a rolling 30-day total, so splitting a claim changes nothing. None of them changed [`kernel.ts`](src/os/kernel.ts).
+- **Multi-agent workflows as data:** steps run in parallel where they can, each step holds only its own capabilities, and a consent scope decides which step may ask the customer anything. Three examples: refund with parallel checks and an audit, escalation to a person, and a read-only answer.
+
+The console's retail scenario runs four customers concurrently on one kernel: an automatic refund after consent, a $249 refund that needs consent and an operator, a prompt-injected agent confined by its capabilities, and a looping agent stopped by its budget. Those programs are scripted so every decision is reproducible. Its **Live AI agents** mode runs real models on the same kernel. The adapter is tested with scripted fixtures and mocked providers; model quality on this multi-agent flow has not been measured yet (`npm run os:live -- --live` is the paid, capped way to do it). 37 unit tests cover the kernel, 5 the agent adapter, 6 the workflow engine and 7 the telecom and delivery distributions. Disabling any of the kernel's key checks (owner authority, capability spending, read isolation, discarding late proposals, revoking rejected grants, the commit-time authority re-check) makes a test fail.
+
+**What carries the weight.** For one refund agent, capabilities, consent and the journal do the work. Processes, the scheduler, IPC and budgets earn their place when one request fans out to several agents (the workflows above), or when a runaway agent has to be stopped. They are kept small for that reason. The [console](https://riyadadlani02.github.io/relay-agent-os/?os=1) shows all three industries.
 
 ## Start in two minutes
 
@@ -138,6 +150,7 @@ npm run test:pages        # static site, outcomes, reload, accessibility and mob
 npm run eval:live         # paid hosted evaluation; explicit opt-in, $2.10 invocation cap
 npm run eval:frontier     # paid GPT-5.4 examples; $0.18 invocation cap
 npm run gauntlet:replay   # free: recorded Qwen tool choices through the current kernel
+npx tsx scripts/project-order-id-fix.ts  # free: answer-checker fix projected from recorded traces
 npm run os:live -- --live # paid: hosted-model agents on the kernel; $0.25 cap
 npm run os:live -- --live --workflows  # same budget, multi-agent workflows
 npx tsx scripts/summarize-evidence.ts
@@ -148,7 +161,7 @@ The evaluation publishes failures as well as successes. It does not call the pay
 ## Project map
 
 ```text
-src/os/                   Relay kernel: capabilities, processes, scheduler, IPC, journal, console
+src/os/                   Relay kernel, console, and retail/telecom/delivery distributions
 src/site/                 Outcome-first website, interactive walkthrough, evidence
 src/playground/           Live tool loop, browser model, voice input, IndexedDB
 src/gauntlet/             Adversarial corpus, independent scorer, recorded-run replay, browser runner

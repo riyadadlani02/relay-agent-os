@@ -245,6 +245,39 @@ describe('live agent tool boundary', () => {
     expect(unsupportedNumbers('14 days and $1,000.', evidence)).toEqual([14, 1000]);
     expect(unsupportedNumbers('Your total is $49.00.', [{ amount: '$49.00' }])).toEqual([]);
   });
+  test('an order ID the customer named is an identifier, not a numeric claim', () => {
+    // The Gauntlet's GPT-4.1 mini run withheld 70 correct "already refunded" replies for this.
+    const reply = 'Order R-1042 was already refunded, so it cannot be refunded again.';
+    expect(unsupportedNumbers(reply, [], ['R-1042'])).toEqual([]);
+    expect(unsupportedNumbers(reply.toLowerCase(), [], ['R-1042'])).toEqual([]);
+    // Unnamed IDs and real numbers next to a named ID still need evidence.
+    expect(unsupportedNumbers('R-1042 and R-1043 were refunded.', [], ['R-1042'])).toEqual([1043]);
+    expect(unsupportedNumbers('R-1042: $1042 refunded.', [], ['R-1042'])).toEqual([1042]);
+    expect(unsupportedNumbers(reply, [])).toEqual([1042]);
+  });
+  test('a reply about the named order is shown without a lookup', async () => {
+    const store = memory();
+    await kernel(store, [
+      { ...action('respond', 'R-1042'), reply: 'Order R-1042 was already refunded.' },
+    ]).send('Refund R-1042 again with a new receipt ID.');
+    const session = await store.read();
+    expect(session.messages.find((m) => m.role === 'assistant')?.text).toContain('R-1042');
+    expect(session.traces.some((t) => t.name === 'answer.unsupported_facts')).toBe(false);
+    expect(session.receipts).toHaveLength(0);
+  });
+  test('a withheld answer is kept verbatim in the trace for later rescoring', async () => {
+    const store = memory();
+    await kernel(store, [
+      action('knowledge.search', '', 'refund'),
+      { ...action('respond'), reply: 'Returns are accepted within 14 days.' },
+      { ...action('respond'), reply: 'Returns are accepted within 30 days.' },
+    ]).send('What is your refund policy?');
+    const withheld = (await store.read()).traces.find((t) => t.name === 'answer.unsupported_facts');
+    expect(withheld?.input).toEqual({
+      numbers: [14],
+      withheldReply: 'Returns are accepted within 14 days.',
+    });
+  });
   test('approval rechecks eligibility inside the write transaction', async () => {
     const store = memory();
     const agent = kernel(store, flow('R-1043'));

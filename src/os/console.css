@@ -401,6 +401,14 @@ body {
 .os-modes button + button {
   border-left: 0;
 }
+.os-industry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 14px;
+  font-size: 13px;
+}
 .os-live {
   margin-top: 22px;
 }

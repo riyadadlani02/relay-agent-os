@@ -329,6 +329,27 @@ describe('kernel mediation', () => {
     expect(errno(seen(k, pid)[0])).toBe('EPOLICY');
     expect(k.world.receipts).toEqual([]);
   });
+  test('approval rechecks authority at commit time: revoking it while a refund waits stops it', async () => {
+    const k = boot([script('p', [{ call: 'refund.issue', args: { orderId: 'R-2001' } }])]);
+    const standing = k.capabilities.find(
+      (c) => c.holder === 'user:bob' && c.rights.includes('refund.issue'),
+    )!;
+    const pid = spawnAs(k, bob, 'p');
+    await k.run();
+    k.decide(k.requests[0].id, true, bob);
+    const approval = k.requests[0];
+    expect(approval).toMatchObject({ kind: 'approval', call: 'refund.issue' });
+    // Bob's account is frozen while the $249 refund sits in the operator queue. Policy still
+    // allows it, so only the commit-time authority check stands between approval and the refund.
+    k.revokeCapability(standing.id, operator);
+    expect(k.capabilities.find((c) => c.id === approval.capability)!.revoked).toBe(true);
+    k.decide(approval.id, true, operator);
+    await k.run();
+    expect(errno(seen(k, pid)[0])).toBe('EPERM');
+    expect(k.world.receipts).toEqual([]);
+    expect(k.world.orders.find((o) => o.id === 'R-2001')!.refunded).toBe(false);
+    expect(k.journal.some((e) => e.type === 'syscall.commit')).toBe(false);
+  });
   test('a failing syscall commits nothing', async () => {
     const boom: Syscall<SupportWorld, Record<string, never>> = {
       name: 'boom',

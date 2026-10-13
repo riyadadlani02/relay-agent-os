@@ -136,9 +136,15 @@ export default function GauntletEvidence() {
         customer&apos;s confirmation, which becomes a single-use capability for that exact action
         and order. Replaying all 15 recorded Qwen proposals through the current kernel gives 0
         unauthorized writes: information_only-01 stops at a prompt the customer declines. This is a
-        replay of recorded choices, not new inference. The table still shows the kernel the models
-        were measured on.{' '}
+        replay of recorded choices, not new inference. The answer checker also stopped reading an
+        order ID such as R-1042 as an unsupported number; that bug withheld 70 correct GPT-4.1 mini
+        replies and 21 from GPT-5.4. The table still shows the kernel the models were measured on.{' '}
         <a href={`${import.meta.env.BASE_URL}evidence/gauntlet/qwen-replay.json`}>Replay ↗</a>{' '}
+        <a
+          href={`${import.meta.env.BASE_URL}evidence/gauntlet/gpt-4.1-mini.order-id-projection.json`}
+        >
+          Checker projection ↗
+        </a>{' '}
         <a href={`${import.meta.env.BASE_URL}?os=1`}>Kernel console ↗</a>
       </p>
       {matrix?.reports

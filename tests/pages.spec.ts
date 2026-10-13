@@ -18,6 +18,25 @@ test('static build loads at its GitHub Pages prefix without API calls', async ({
   expect(errors).toEqual([]);
 });
 
+test('link previews point at a published 1200×630 image', async ({ page, request }) => {
+  await page.goto('./');
+  const og = (property: string) =>
+    page.locator(`meta[property="${property}"]`).getAttribute('content');
+  const image = new URL((await og('og:image'))!);
+  expect(image.origin + image.pathname.replace(/[^/]*$/, '')).toBe(
+    'https://riyadadlani02.github.io/relay-agent-os/images/',
+  );
+  expect([await og('og:image:width'), await og('og:image:height')]).toEqual(['1200', '630']);
+  const served = await request.get(`.${image.pathname.replace('/relay-agent-os', '')}`);
+  expect(served.status()).toBe(200);
+  expect(served.headers()['content-type']).toContain('image/jpeg');
+  expect((await served.body()).length).toBeLessThan(300_000);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+    'content',
+    'summary_large_image',
+  );
+});
+
 test('browser demo survives reload at approval and commits one verified effect', async ({
   page,
 }) => {
@@ -176,6 +195,52 @@ test('kernel console mediates four customers and exposes journal tampering', asy
   await expect(page.getByRole('button', { name: /Start alice's agent/ })).toBeDisabled();
   const live = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
   expect(live.violations).toEqual([]);
+  await page.setViewportSize({ width: 390, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('the same kernel runs telecom and food-delivery scenarios', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('./?os=1');
+  const run = page.getByRole('button', { name: 'Run until a person is needed' });
+
+  await page.getByRole('button', { name: 'Telecom' }).click();
+  await run.click();
+  // Asha asked for ₹2,000; the network log supports ₹60. Mallory's impersonation asks nobody.
+  await expect(
+    page.getByText('Credit ₹60 to +91 90000 07001 for 6 logged outage hours'),
+  ).toBeVisible();
+  await expect(page.getByText('mallory: confirm?')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Confirm as asha' }).click();
+  await page.getByRole('button', { name: 'Confirm as ravi' }).click();
+  await run.click();
+  await expect(page.getByText(/second swap within 30 days goes to the fraud desk/)).toBeVisible();
+  await page.getByRole('button', { name: 'Approve', exact: true }).click();
+  await run.click();
+  await expect(
+    page.getByText('1 credits · 1 SIM swaps · 2 tickets', { exact: false }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Change a credit in the log to ₹0.01' }).click();
+  await expect(page.getByText(/broken at #\d+/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Food delivery' }).click();
+  await run.click();
+  await expect(page.getByText('Refund ₹320 for missing Paneer tikka on D-6102')).toBeVisible();
+  await expect(page.getByText('zoya: confirm?')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Confirm as meera' }).click();
+  await page.getByRole('button', { name: 'Confirm as kabir' }).click();
+  await run.click();
+  await page.getByRole('button', { name: 'Approve', exact: true }).click();
+  await run.click();
+  await expect(page.getByText('2 item refunds · 2 tickets', { exact: false })).toBeVisible();
+  await expect(page.getByText(/chain verified/)).toBeVisible();
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(results.violations).toEqual([]);
   await page.setViewportSize({ width: 390, height: 900 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);

@@ -239,12 +239,13 @@ export class AgentKernel {
             );
             return;
           }
-          const unsupported = unsupportedNumbers(action.reply, evidence);
+          const unsupported = unsupportedNumbers(action.reply, evidence, orderScope);
           if (unsupported.length) {
             await this.trace(
               'error',
               'answer.unsupported_facts',
-              { numbers: unsupported },
+              // The withheld text is kept for operators so a later rescore needs no inference.
+              { numbers: unsupported, withheldReply: action.reply },
               {
                 message:
                   'Answer withheld: these numeric claims are absent from the retrieved evidence.',

@@ -22,14 +22,15 @@ import { BrowserModel, ServerModel } from '../playground/model';
 import type { AgentModel } from './agent';
 import { verify, type JournalEntry } from './journal';
 import { isLive } from './capability';
-import type { StepRecord } from './kernel';
+import type { RelayKernel, StepRecord } from './kernel';
+import { scenarios } from './scenarios';
 import {
   bootLive,
-  bootSupport,
   customers,
   runWorkflow,
   startConversation,
   supportWorkflows,
+  type SupportWorld,
 } from './support';
 import type { RunnerMemory, StepStatus } from './workflow';
 
@@ -54,11 +55,14 @@ export default function KernelConsole() {
   const agentModel = useRef<AgentModel | undefined>(undefined);
   const browserModel = useRef<BrowserModel | undefined>(undefined);
   const constrainRef = useRef(true);
-  const bootMode = (mode: Mode) =>
+  const [scenarioId, setScenarioId] = useState(scenarios[0].id);
+  const scenario = scenarios.find((s) => s.id === scenarioId)!;
+  const bootMode = (mode: Mode, id = scenarioId) =>
     mode === 'scripted'
-      ? bootSupport()
+      ? scenarios.find((s) => s.id === id)!.boot()
       : bootLive({ model: () => agentModel.current, constrain: () => constrainRef.current });
-  const kernel = useRef<ReturnType<typeof bootSupport>>(bootSupport());
+  // Each industry has its own world type; the console only reads it through `active`.
+  const kernel = useRef<RelayKernel<any>>(scenarios[0].boot());
   const [mode, setMode] = useState<Mode>('scripted');
   const [view, setView] = useState(() => kernel.current.snapshot());
   const [log, setLog] = useState<StepRecord[]>([]);
@@ -116,14 +120,17 @@ export default function KernelConsole() {
       setRunning(false);
     }
   }
-  function switchMode(next: Mode) {
-    if (next === mode) return;
-    kernel.current = bootMode(next);
+  function rebootWith(next: Mode, id: string) {
+    kernel.current = bootMode(next, id);
     setMode(next);
+    setScenarioId(id);
     setLog([]);
     setTampered(undefined);
     setError('');
     refresh();
+  }
+  function switchMode(next: Mode) {
+    if (next !== mode) rebootWith(next, scenarioId);
   }
   async function loadEngine(useServer: boolean) {
     setError('');
@@ -170,18 +177,21 @@ export default function KernelConsole() {
     setError('');
     refresh();
   }
+  // Live agents always run the retail distribution.
+  const active = mode === 'live' ? scenarios[0] : scenario;
+  const amountField = active.tamper.field;
   const refundCommit = (entries: JournalEntry[]) =>
     entries.find(
       (e) =>
         e.type === 'syscall.commit' &&
-        typeof (e.data as { value?: { amountCents?: unknown } }).value?.amountCents === 'number',
+        typeof (e.data as { value?: Record<string, unknown> }).value?.[amountField] === 'number',
     );
   function tamper() {
     // Edits a copy for display; the kernel's own journal is untouched.
     const copy = structuredClone(view.journal);
     const target = refundCommit(copy);
     if (!target) return;
-    (target.data as { value: { amountCents: number } }).value.amountCents = 1;
+    (target.data as { value: Record<string, number> }).value[amountField] = 1;
     setTampered(copy);
   }
 
@@ -189,7 +199,7 @@ export default function KernelConsole() {
   const chain = verify(journal);
   const live = view.processes.filter((p) => p.state !== 'exited').length;
   const caps = view.capabilities.filter((c) => allCaps || c.holder.startsWith('process:'));
-  const request = customers.map((c) => [c.id, c.request] as const);
+  const request = active.requests.map((c) => [c.id, c.request] as const);
   const conversations = view.processes.filter((p) => p.ppid === null);
 
   return (
@@ -216,9 +226,7 @@ export default function KernelConsole() {
           </div>
           {mode === 'scripted' ? (
             <p>
-              Four customers share one kernel. Each conversation runs as a process that holds only
-              the capabilities it was handed. Every call passes the same gate: capability → policy →
-              the owner&apos;s consent → operator approval → atomic commit → hash-chained journal.
+              {scenario.intro}
               <strong>
                 {' '}
                 In this scenario, scripted programs stand in for model output, so every decision is
@@ -238,6 +246,22 @@ export default function KernelConsole() {
           )}
         </section>
 
+        {mode === 'scripted' && (
+          <div className="os-industry" role="group" aria-label="Industry">
+            <span>Same kernel, different industry:</span>
+            {scenarios.map((s) => (
+              <button
+                key={s.id}
+                aria-pressed={s.id === scenarioId}
+                className={s.id === scenarioId ? 'os-primary' : undefined}
+                disabled={running}
+                onClick={() => s.id !== scenarioId && rebootWith('scripted', s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="os-controls" role="group" aria-label="Scheduler controls">
           <div className="os-modes" role="group" aria-label="Programs">
             {(['scripted', 'live'] as const).map((m) => (
@@ -318,7 +342,9 @@ export default function KernelConsole() {
                       }}
                     >
                       {customers.map((c) => {
-                        const order = view.world.orders.find((o) => o.id === c.orderId)!;
+                        const order = (view.world as SupportWorld).orders.find(
+                          (o) => o.id === c.orderId,
+                        )!;
                         return (
                           <option key={c.id} value={c.id}>
                             {c.id} · owns {order.id}, {order.product}, {dollars(order.amountCents)}
@@ -680,7 +706,7 @@ export default function KernelConsole() {
                 </button>
               ) : (
                 <button onClick={tamper} disabled={!refundCommit(view.journal)}>
-                  <ShieldAlert size={15} /> Change a refund in the log to $0.01
+                  <ShieldAlert size={15} /> {active.tamper.label}
                 </button>
               )}
             </div>
@@ -705,19 +731,14 @@ export default function KernelConsole() {
           <section className="os-panel os-world" aria-labelledby="world-title">
             <h2 id="world-title">World state</h2>
             <ul className="os-orders">
-              {view.world.orders.map((o) => (
-                <li key={o.id}>
-                  <b>{o.id}</b> {o.product} · {dollars(o.amountCents)} · {o.customer}
-                  <span className={o.refunded ? 'os-ok' : undefined}>
-                    {o.refunded ? 'refunded' : 'unchanged'}
-                  </span>
+              {active.records(view.world).map((r) => (
+                <li key={r.id}>
+                  <b>{r.id}</b> {r.text}
+                  <span className={r.changed ? 'os-ok' : undefined}>{r.status}</span>
                 </li>
               ))}
             </ul>
-            <p>
-              {view.world.receipts.length} receipts · {view.world.tickets.length} support tickets.
-              Sample records in memory; no payment is made.
-            </p>
+            <p>{active.footer(view.world)}</p>
           </section>
         </div>
       </main>
