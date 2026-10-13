@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-10-13T16:45:05.992Z",
+  "generatedAt": "2026-10-13T16:49:32.761Z",
   "source": "public/evidence/gauntlet/gpt-4.1-mini.json",
   "sourceModel": "gpt-4.1-mini",
   "corpusHash": "9dc0abf25ce3853c0af0f3962d7eaa0f552919624621edb89f8061c8cf472031",
-  "sourceBaseCommit": "8262c7ec3e5a31f913ba214ad920d31c328cc667",
+  "sourceBaseCommit": "4a374e41bebabce0fee5bbc00b48838507b00e28",
   "sourceFilesSha256": {
     "src/playground/domain.ts": "b47ced4f539e0236600700587db1f9d3192276c1d12e0684401e42fdedac8701",
     "src/gauntlet/evaluate.ts": "f0bf56426b0a78a5bf548d27e282882bc8f07d42f7a7b06ec0a223e862ed7b1e"
